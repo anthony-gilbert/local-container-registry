@@ -18,7 +18,7 @@ import (
 var (
 	baseStyle = lipgloss.NewStyle().
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240"))
+		BorderForeground(lipgloss.Color("240")).Margin(0, 0, 1, 2)
 )
 
 type model struct {
@@ -115,27 +115,8 @@ func main() {
 	)
 
 	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------" + Reset)
-	fmt.Println(Magenta + "            _____            _____                        _____          " + Reset)
-	fmt.Println(Magenta + "           /\\    \\         /\\    \\                      /\\    \\         " + Reset)
-	fmt.Println(Magenta + "          /::\\____\\      /::\\    \\                    /::\\    \\        " + Reset)
-	fmt.Println(Magenta + "         /:::/    /       /::::\\    \\                  /::::\\    \\       " + Reset)
-	fmt.Println(Magenta + "        /:::/    /       /::::::\\    \\                /::::::\\    \\      " + Reset)
-	fmt.Println(Magenta + "       /:::/    /       /:::/\\:::\\    \\              /:::/\\:::\\    \\     " + Reset)
-	fmt.Println(Magenta + "      /:::/    /       /:::/  \\:::\\    \\            /:::/__\\:::\\    \\    " + Reset)
-	fmt.Println(Magenta + "     /:::/    /       /:::/    \\:::\\    \\          /::::\\   \\:::\\    \\   " + Reset)
-	fmt.Println(Magenta + "    /:::/    /       /:::/    / \\:::\\    \\        /::::::\\   \\:::\\    \\  " + Reset)
-	fmt.Println(Magenta + "   \\:::/    /       /:::/    /   \\:::\\    \\      /:::/\\:::\\   \\:::\\____\\ " + Reset)
-	fmt.Println(Magenta + "    \\:::/__/         /:::/____/     \\:::\\____\\    /:::/  \\:::\\   \\:::|    |" + Reset)
-	fmt.Println(Magenta + "     \\:::\\   \\       \\:::\\    \\      \\  /     /  /:::/   |::::\\  /:::|____|" + Reset)
-	fmt.Println(Magenta + "      \\:::\\   \\       \\:::\\    \\      \\/_____/  /___/    |:::::\\/:::/    / " + Reset)
-	fmt.Println(Magenta + "       \\:::\\   \\       \\:::\\    \\                        |:::::::::/    /  " + Reset)
-	fmt.Println(Magenta + "        \\:::\\   \\       \\:::\\    \\                       |::|\\::::/    /   " + Reset)
-	fmt.Println(Magenta + "         \\:::\\   \\       \\:::\\    \\                      |::| \\::/____/    " + Reset)
-	fmt.Println(Magenta + "          \\:::\\   \\       \\:::\\    \\                     |::|  ~|          " + Reset)
-	fmt.Println(Magenta + "           \\:::\\   \\       \\:::\\    \\                    |::|   |          " + Reset)
-	fmt.Println(Magenta + "            \\:::\\___\\       \\:::\\____\\                   \\::|   |          " + Reset)
-	fmt.Println(Magenta + "             \\::/    /        \\::/    /                    \\:|   |          " + Reset)
-	fmt.Println(Magenta + "              \\/____/ocal      \\/____/ontainer              \\|___|egistry          " + Reset)
+	fmt.Println(Magenta + "                           Local Container Registry          " + Reset)
+	fmt.Println(Magenta + "-----------------------------------------------------------------------------------------------" + Reset)
 
 	columns := []table.Column{
 		{Title: "Commit-SHA", Width: 20},
@@ -144,6 +125,19 @@ func main() {
 		{Title: "Image Size", Width: 10},
 		{Title: "Image Tag", Width: 15},
 	}
+	// TODO: List the following:
+	// TODO: [Tabs] - [Github] Commits List the Github Commit SHA
+	// TODO: [Tabs] - [Github] Commits List the Github PR-Description
+
+	// TODO: [Tabs] - [Docker] List The Docker Image IDs
+	// TODO: [Tabs] - [Docker] List The Docker Image Size
+	// TODO: [Tabs] - [Docker] List The Docker Image Tags(If available)
+	// TODO: [Tabs] - [Docker] Delete The Docker Image
+	// TODO: [Tabs] - [Docker] Delete The Docker Container
+	// TABS: [Tabs] - [Deployment] - Pull
+	// TABS: [Tabs] - [Deployment] - List
+	// TABS: [Tabs] - [Deployment] - Push
+	// TABS: [Tabs] - [Deployment] - Delete
 
 	rows := []table.Row{
 		{"1", "Tokyo", "Japan", "37,274,000", "daddy"},
