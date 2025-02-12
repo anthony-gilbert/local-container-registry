@@ -1,13 +1,11 @@
 package main
 
 import (
-	// std lib
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
-	// external
 	// _ "github.com/go-sql-griver/mysql"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
@@ -108,6 +106,11 @@ func main() {
 	l.Styles.Title = titleStyle
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle
+
+	// x :=
+	// if z := 2 * rand.Intn(x); z >= x {
+	// 	fmt.Print("z is %v and that is Greater than or equa x which is %v\n", z, x)
+	// }
 
 	var (
 		Reset   = "\033[0m"
