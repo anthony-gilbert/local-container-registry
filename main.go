@@ -139,6 +139,8 @@ func main() {
 	// TABS: [Tabs] - [Deployment] - Push
 	// TABS: [Tabs] - [Deployment] - Delete
 
+	// ADD Dynamic tabs to each section based on what is selected(add, edit, delete, deploy).
+
 	rows := []table.Row{
 		{"1", "Tokyo", "Japan", "37,274,000", "daddy"},
 		{"2", "Delhi", "India", "32,065,760", "daddy"},
@@ -255,6 +257,7 @@ func main() {
 		BorderForeground(lipgloss.Color("240")).
 		BorderBottom(true).
 		Bold(false)
+	// headerStyle := baseStyle.Foreground(lipgloss.Color("252")).Bold(true)
 	s.Selected = s.Selected.
 		Foreground(lipgloss.Color("229")).
 		Background(lipgloss.Color("57")).
