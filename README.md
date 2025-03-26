@@ -21,5 +21,5 @@ A Golang application that monitors Dockerfile builds, tracks Docker images, and 
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/yourusername/docker-deployment-tracker.git
-   cd docker-deployment-tracker
+   git clone git@github.com:anthonygilbertt/local-container-registry.git
+   cd local-container-registry
