@@ -1,0 +1,26 @@
+version: '3.7'
+services:
+  local-container-registry:
+    container_name: local-container-registry
+    image: anthonygilbertt/local-container-registry:1.0.1
+    build: .
+    environment:
+      DATABASE_URL: "host=local_container_registry_db user=postgres password=postgres port=5433 dbname=postgres sslmode=disable"
+    ports:
+      - "8081:8081"
+    depends_on:
+      - local_container_registry_db
+  local_container_registry_db:
+    container_name: local_container_registry_db
+    image: postgres:12
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5433"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata: {}
