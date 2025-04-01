@@ -9,6 +9,9 @@ import (
 	"os"
 	"strings"
 
+	// "encoding/json"
+	// "net/http"
+
 	// containertypes "github.com/docker/docker/api/types/container"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -18,6 +21,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/google/go-github/v63/github"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 const listHeight = 14
@@ -59,9 +63,9 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 }
 
 type model struct {
-	list     list.Model
-	choice   string
-	quitting bool
+	List     list.Model
+	Choice   string
+	Quitting bool
 }
 
 func (m model) Init() tea.Cmd {
@@ -71,66 +75,67 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		m.list.SetWidth(msg.Width)
+		m.List.SetWidth(msg.Width)
 		return m, nil
 
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "q", "ctrl+c":
-			m.quitting = true
+			m.Quitting = true
 			return m, tea.Quit
 
 		case "enter":
-			i, ok := m.list.SelectedItem().(item)
+			i, ok := m.List.SelectedItem().(item)
 			if ok {
-				m.choice = string(i)
+				m.Choice = string(i)
 			}
 			return m, tea.Quit
 		}
 	}
 
 	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
+	m.List, cmd = m.List.Update(msg)
 	return m, cmd
 }
 
 func (m model) View() string {
-	if m.choice != "" {
-		return quitTextStyle.Render(fmt.Sprintf("%s? Sounds good to me.", m.choice))
+	if m.Choice != "" {
+		return quitTextStyle.Render(fmt.Sprintf("%s? Sounds good to me.", m.Choice))
 	}
-	if m.quitting {
+	if m.Quitting {
 		return quitTextStyle.Render("Not hungry? That’s cool.")
 	}
-	return "\n" + m.list.View()
+	return "\n" + m.List.View()
 }
 
 type Image struct {
-	id        int64
+	Id        int
 	CommitSHA string
 	ImageID   string
 }
 type Repositories struct {
-	id            int64
-	owner         string
-	repoName      string
-	fullName      string
-	commit        string
-	prDescription string
+	Id            int64  `json:"id"`
+	Owner         string `json:"owner"`
+	RepoName      string `json:"repoName"`
+	FullName      string `json:"fullName"`
+	Commit        string `json:"commit"`
+	PrDescription string `json:"prDescription"`
 }
 
 func connectToMySQL() (*sql.DB, error) {
 	var Reset = "\033[0m"
 	var Green = "\033[32m"
-	var user string = "MYSQL_USER"
-	var password string = "MYSQL_ROOT_PASSWORD"
-	var database string = "MYSQL_DATABASE"
-	host := "MYSQL_HOST"
+	// var user string = "MYSQL_USER"
+	// var password string = "MYSQL_ROOT_PASSWORD"
+	// var database string = "MYSQL_DATABASE"
+	// host := "MYSQL_HOST"
 
 	// Create the DSN (Data Source Name)
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", user, password, host, database)
+	// dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s", user, password, host, database)
 
 	// Open the connection to the MySQL database
-	db, err := sql.Open("mysql", dsn)
+	// db, err := sql.Open("mysql", dsn)
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +144,20 @@ func connectToMySQL() (*sql.DB, error) {
 	err = db.Ping()
 	if err != nil {
 		return nil, err
+	}
+
+	// Create the table if it doesn't exist
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS images (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		commit_SHA VARCHAR(255),
+		PR_Description VARCHAR(255),
+		image_id VARCHAR(255),
+		image_size INT,
+		image_tag VARCHAR(255),
+		timestamp VARCHAR(255)
+		`)
+	if err != nil {
+		log.Fatalf("Error creating table: %v\n", err)
 	}
 
 	fmt.Println("------------------------------------------------------------------------------------------------")
@@ -250,11 +269,6 @@ func main() {
 	l.Styles.Title = titleStyle
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle
-
-	// x :=
-	// if z := 2 * rand.Intn(x); z >= x {
-	// 	fmt.Print("z is %v and that is Greater than or equa x which is %v\n", z, x)
-	// }
 
 	var (
 		Reset   = "\033[0m"

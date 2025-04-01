@@ -10,11 +10,11 @@ var Cyan = "\033[36m"
 var Gray = "\033[37m"
 var White = "\033[97m"
 
-println(Red + "This is Red" + Reset)
-println(Green + "This is Green" + Reset)
-println(Yellow + "This is Yellow" + Reset)
-println(Blue + "This is Blue" + Reset)
-println(Magenta + "This is Purple" + Reset)
-println(Cyan + "This is Cyan" + Reset)
-println(Gray + "This is Gray" + Reset)
-println(White + "This is White" + Reset) 
+// println(Red + "This is Red" + Reset)
+// println(Green + "This is Green" + Reset)
+// println(Yellow + "This is Yellow" + Reset)
+// println(Blue + "This is Blue" + Reset)
+// println(Magenta + "This is Purple" + Reset)
+// println(Cyan + "This is Cyan" + Reset)
+// println(Gray + "This is Gray" + Reset)
+// println(White + "This is White" + Reset)
