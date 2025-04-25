@@ -18,11 +18,18 @@ type User struct {
 	Password string `json:"password"`
 }
 
+type Repositories struct {
+	id            int64
+	owner         string
+	repoName      string
+	fullName      string
+	commit        string
+	prDescription string
+}
+
 /*
 I want to be able to connect to a MySQL database and run a query to get the data I need.
 I want to be able to connect to a Postgres database and run a query to get the data I need.
-I want to be able to connec to a Postgres database and run a query to input the data that I need.
-I want to be able to connec to the Github API and get the data I need.
 */
 
 func init() {
@@ -32,7 +39,7 @@ func init() {
 	}
 }
 
-// write a function that connects to Github and returns data from a specific user and from a specific repo.
+// func loginToGithub() *github.RepositoryCommit {
 func loginToGithub() {
 	// Add styling to logging
 	var (
@@ -48,29 +55,31 @@ func loginToGithub() {
 	client := github.NewClient(nil).WithAuthToken(os.Getenv("gitHubAuth"))
 	owner := os.Getenv("GITHUB_OWNER")
 	repo := os.Getenv("GITHUB_REPO")
-	repoData, _, err := client.Repositories.Get(context.Background(), owner, repo)
+	// repoData, _, err := client.Repositories.Get(context.Background(), owner, repo)
+	_, _, err := client.Repositories.Get(context.Background(), owner, repo)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Repository Name: %s\n", repoData.GetName())
-	fmt.Printf("Repository Description: %s\n", repoData.GetDescription())
+	// fmt.Printf("Repository Name: %s\n", repoData.GetName())
+	// fmt.Printf("Repository Description: %s\n", repoData.GetDescription())
 	branch := "master"
-	_, _, err = client.Repositories.GetCommit(context.Background(), owner, repo, branch, nil)
+	commit, _, err := client.Repositories.GetCommit(context.Background(), owner, repo, branch, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	println(Green + "Logged into Github" + Reset)
 	fmt.Println("------------------------------------------------------------------------------------------------")
-	// fmt.Printf("Last commit on main branch:\n")
-	// 	fmt.Printf("Last Full commit message on main branch: %s\n", commit.GetCommit().GetMessage())
-	// 	fmt.Printf("Author: %s\n", commit.GetCommit().GetAuthor().GetName())
-	// 	fmt.Printf("Date: %s\n", commit.GetCommit().GetAuthor().GetDate())
-	// 	fmt.Printf("ID: %d\n", repoData.GetID())
-	// 	fmt.Printf("repo: %+v\n", repoData.GetFullName())
-	// 	fmt.Printf("Owner: %v\n", repoData.GetOwner())
-	// 	fmt.Printf("UpdatedAt: %v\n", repoData.GetUpdatedAt())
-	// 	fmt.Printf("SHA: %s\n", commit.GetSHA())
+	// fmt.Printf("Last commit on master branch:\n")
+	fmt.Printf("Last Full commit message on master branch: %s\n", commit.GetCommit().GetMessage())
+	fmt.Printf("SHA: %s\n", commit.GetSHA())
+
+	// fmt.Printf("Owner: %v\n", repoData.GetOwner())
+	// fmt.Printf("repo: %+v\n", repoData.GetFullName())
+	// fmt.Printf("Date: %s\n", commit.GetCommit().GetAuthor().GetDate())
+	// fmt.Printf("UpdatedAt: %v\n", repoData.GetUpdatedAt())
+	// fmt.Printf("Author: %s\n", commit.GetCommit().GetAuthor().GetName())
+	// fmt.Printf("ID: %d\n", repoData.GetID())
 	// 	fmt.Printf("PushedAt: %v\n", repoData.GetPushedAt())
 	// 	Create a code break
 	// 	fmt.Println("------------------------------------------------------------------------------------------------")
@@ -83,10 +92,10 @@ func loginToGithub() {
 	// 	fmt.Printf("CreatedAt: %v\n", repoData.GetCreatedAt())
 	// 	fmt.Printf("URL: %s\n", repoData.GetURL())
 	// 	fmt.Println("Logged into Github")
+
 }
 
 func main() {
-
 	var (
 		Reset   = "\033[0m"
 		Magenta = "\033[35m"
@@ -112,22 +121,22 @@ func main() {
 	fmt.Println(Magenta + "          \\:::\\   \\       \\:::\\    \\                     |::|  ~|          " + Reset)
 	fmt.Println(Magenta + "           \\:::\\   \\       \\:::\\    \\                    |::|   |          " + Reset)
 	fmt.Println(Magenta + "            \\:::\\___\\       \\:::\\____\\                   \\::|   |          " + Reset)
-	fmt.Println(Magenta + "             \\::/    /        \\::/    /                    \\:|   |          " + Reset)
-	fmt.Println(Magenta + "              \\/____/ocal      \\/____/ontainer              \\|___|egistry          " + Reset)
+	fmt.Println(Magenta + "             \\::/    /        \\::/    /                   \\:|   |          " + Reset)
+	fmt.Println(Magenta + "              \\/____/ocal      \\/____/ontainer             \\|___|egistry          " + Reset)
 	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
 	fmt.Println(Magenta+" |", "                Commit SHA                 |            ", "PR Description            |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
 	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
+	loginToGithub()
 
-	// TODO: [Tabs] - [Github] List the Github Commit SHA
-	// TODO: [Tabs] - [Github] List the Github PR-Description
+	// TODO: [Tabs] - [Github] List the Github Commit SHA - DONE
+	// TODO: [Tabs] - [Github] List the Github PR-Description - DONE
 	// TODO: [Tabs] - [Docker] List The Docker Image IDs
 	// TODO: [Tabs] - [Docker] List The Docker Image Size
 	// TODO: [Tabs] - [Docker] List The Docker Image Tags(If available)
 	// TODO: [Tabs] - [Docker] Delete The Docker Image
 	// TODO: [Tabs] - [Docker] Delete The Docker Container
-	// TABS: [Tabs] - [Deployment] - Pull
-	// TABS: [Tabs] - [Deployment] - List
-	// TABS: [Tabs] - [Deployment] - Push
-	// TABS: [Tabs] - [Deployment] - Delete
-	loginToGithub()
+	// TODO: [Tabs] - [Deployment] - Pull
+	// TODO: [Tabs] - [Deployment] - List
+	// TODO: [Tabs] - [Deployment] - Push
+	// TODO: [Tabs] - [Deployment] - Delete
 }
