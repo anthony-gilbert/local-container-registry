@@ -1,9 +1,10 @@
-version: '3.7'
 services:
   local-container-registry:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: local-container-registry:latest
     container_name: local-container-registry
-    image: anthonygilbertt/local-container-registry:1.0.1
-    build: .
     environment:
       DATABASE_URL: "host=local_container_registry_db user=postgres password=postgres port=5433 dbname=postgres sslmode=disable"
     ports:
@@ -11,8 +12,8 @@ services:
     depends_on:
       - local_container_registry_db
   local_container_registry_db:
-    container_name: local_container_registry_db
     image: postgres:12
+    container_name: local_container_registry_db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
