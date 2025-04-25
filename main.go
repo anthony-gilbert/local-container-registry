@@ -97,8 +97,8 @@ func main() {
 	fmt.Printf("SHA: %s\n", commit.GetSHA())
 	fmt.Printf("Last commit message: %s\n", commit.GetCommit().GetMessage())
 
-	// TODO: [Tabs] - [Github] List the Github Commit SHA - DONE
-	// TODO: [Tabs] - [Github] List the Github PR-Description - DONE
+	// [ X ]: [Tabs] - [Github] List the Github Commit SHA - DONE
+	// [ X ]: [Tabs] - [Github] List the Github PR-Description - DONE
 	// TODO: [Tabs] - [Docker] List The Docker Image IDs
 	// TODO: [Tabs] - [Docker] List The Docker Image Size
 	// TODO: [Tabs] - [Docker] List The Docker Image Tags(If available)
