@@ -62,7 +62,7 @@ func loginToGithub() {
 	}
 	// fmt.Printf("Repository Name: %s\n", repoData.GetName())
 	// fmt.Printf("Repository Description: %s\n", repoData.GetDescription())
-	branch := "master"
+	branch := "github-data-in-table"
 	commit, _, err := client.Repositories.GetCommit(context.Background(), owner, repo, branch, nil)
 	if err != nil {
 		log.Fatal(err)
