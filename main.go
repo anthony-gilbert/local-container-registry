@@ -27,10 +27,8 @@ type Repositories struct {
 	prDescription string
 }
 
-/*
-I want to be able to connect to a MySQL database and run a query to get the data I need.
-I want to be able to connect to a Postgres database and run a query to get the data I need.
-*/
+//I want to be able to connect to a Postgres database.
+// the database should have a table for github data, docker data, kubernetes/deployment data
 
 func init() {
 	// loads .env file into environment
@@ -39,13 +37,12 @@ func init() {
 	}
 }
 
-// func loginToGithub() *github.RepositoryCommit {
-func loginToGithub() {
-	// Add styling to logging
+func main() {
 	var (
-		Green  = "\033[32m"
-		Reset  = "\033[0m"
-		Yellow = "\033[33m"
+		Reset   = "\033[0m"
+		Magenta = "\033[35m"
+		Green   = "\033[32m"
+		Yellow  = "\033[33m"
 	)
 
 	fmt.Println("------------------------------------------------------------------------------------------------")
@@ -69,39 +66,8 @@ func loginToGithub() {
 	}
 
 	println(Green + "Logged into Github" + Reset)
-	fmt.Println("------------------------------------------------------------------------------------------------")
-	// fmt.Printf("Last commit on master branch:\n")
-	fmt.Printf("Last Full commit message on master branch: %s\n", commit.GetCommit().GetMessage())
-	fmt.Printf("SHA: %s\n", commit.GetSHA())
 
-	// fmt.Printf("Owner: %v\n", repoData.GetOwner())
-	// fmt.Printf("repo: %+v\n", repoData.GetFullName())
-	// fmt.Printf("Date: %s\n", commit.GetCommit().GetAuthor().GetDate())
-	// fmt.Printf("UpdatedAt: %v\n", repoData.GetUpdatedAt())
-	// fmt.Printf("Author: %s\n", commit.GetCommit().GetAuthor().GetName())
-	// fmt.Printf("ID: %d\n", repoData.GetID())
-	// 	fmt.Printf("PushedAt: %v\n", repoData.GetPushedAt())
-	// 	Create a code break
-	// 	fmt.Println("------------------------------------------------------------------------------------------------")
-	// 	fmt.Printf("Size: %d\n", repoData.GetSize())
-	// 	fmt.Printf("CommitsURL: %s\n", repoData.GetCommitsURL())
-	// 	fmt.Printf("FullName: %s\n", repoData.GetFullName())
-	// 	fmt.Printf("Name: %s\n", repoData.GetName())
-	// 	fmt.Printf("Description: %s\n", repoData.GetDescription())
-	// 	fmt.Printf("BranchesURL: %s\n", repoData.GetBranchesURL())
-	// 	fmt.Printf("CreatedAt: %v\n", repoData.GetCreatedAt())
-	// 	fmt.Printf("URL: %s\n", repoData.GetURL())
-	// 	fmt.Println("Logged into Github")
-
-}
-
-func main() {
-	var (
-		Reset   = "\033[0m"
-		Magenta = "\033[35m"
-	)
-
-	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------" + Reset)
+	fmt.Println(Magenta + " -----------------------------------------------------------------------------------------------" + Reset)
 	fmt.Println(Magenta + "            _____            _____                         _____          " + Reset)
 	fmt.Println(Magenta + "           /\\    \\         /\\    \\                       /\\    \\         " + Reset)
 	fmt.Println(Magenta + "          /::\\____\\       /::\\    \\                     /::\\    \\        " + Reset)
@@ -123,10 +89,13 @@ func main() {
 	fmt.Println(Magenta + "            \\:::\\___\\       \\:::\\____\\                   \\::|   |          " + Reset)
 	fmt.Println(Magenta + "             \\::/    /        \\::/    /                   \\:|   |          " + Reset)
 	fmt.Println(Magenta + "              \\/____/ocal      \\/____/ontainer             \\|___|egistry          " + Reset)
-	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
-	fmt.Println(Magenta+" |", "                Commit SHA                 |            ", "PR Description            |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
-	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
-	loginToGithub()
+	fmt.Println(Magenta + " -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
+	fmt.Println(Magenta+" |", "                Commit SHA                 |                   ", "PR Description                   |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
+	fmt.Println(Magenta + " |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|" + Reset)
+	fmt.Println(Magenta+" |  ", commit.GetSHA(), "|", commit.GetCommit().GetMessage(), "|-----------------|--------------------|-------------------|-----------------------|"+Reset)
+
+	fmt.Printf("SHA: %s\n", commit.GetSHA())
+	fmt.Printf("Last commit message: %s\n", commit.GetCommit().GetMessage())
 
 	// TODO: [Tabs] - [Github] List the Github Commit SHA - DONE
 	// TODO: [Tabs] - [Github] List the Github PR-Description - DONE
