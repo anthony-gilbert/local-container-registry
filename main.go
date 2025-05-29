@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/anthonygilbertt/local-container/utils"
+	"github.com/anthonygilbertt/local-container-registry/utils"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/go-github/v63/github"
