@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/local-container/src/utils"
+
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/go-github/v63/github"
 	"github.com/joho/godotenv"
@@ -29,26 +31,14 @@ type Repositories struct {
 	prDescription string
 }
 
-<<<<<<< Updated upstream
-/*
-I want to be able to connect to a MySQL database and run a query to get the data I need.
-I want to be able to connect to a Postgres database and run a query to get the data I need.
-*/
-
-=======
 // This init() function loads in the .env file into environment variables
->>>>>>> Stashed changes
+
 func init() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found or could not load it:", err)
 	}
 }
 
-<<<<<<< Updated upstream
-// func loginToGithub() *github.RepositoryCommit {
-func loginToGithub() {
-	// Add styling to logging
-=======
 var db *sql.DB
 
 func main() {
@@ -74,7 +64,6 @@ func main() {
 	}
 	fmt.Println("Connected!")
 
->>>>>>> Stashed changes
 	var (
 		Green  = "\033[32m"
 		Reset  = "\033[0m"
@@ -126,17 +115,6 @@ func main() {
 	// 	fmt.Printf("URL: %s\n", repoData.GetURL())
 	// 	fmt.Println("Logged into Github")
 
-}
-
-<<<<<<< Updated upstream
-func main() {
-	var (
-		Reset   = "\033[0m"
-		Magenta = "\033[35m"
-	)
-
-	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------" + Reset)
-=======
 	commitLength := len(commit.GetCommit().GetMessage())
 	commitMessage := commit.GetCommit().GetMessage()
 
@@ -158,40 +136,32 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println(Magenta + " -----------------------------------------------------------------------------------------------" + Reset)
->>>>>>> Stashed changes
-	fmt.Println(Magenta + "            _____            _____                         _____          " + Reset)
-	fmt.Println(Magenta + "           /\\    \\          /\\    \\                       /\\    \\         " + Reset)
-	fmt.Println(Magenta + "          /::\\____\\        /::\\    \\                     /::\\    \\        " + Reset)
-	fmt.Println(Magenta + "         /:::/    /       /::::\\    \\                   /::::\\    \\       " + Reset)
-	fmt.Println(Magenta + "        /:::/    /       /::::::\\    \\                 /::::::\\    \\      " + Reset)
-	fmt.Println(Magenta + "       /:::/    /       /:::/\\:::\\    \\               /:::/\\:::\\    \\     " + Reset)
-	fmt.Println(Magenta + "      /:::/    /       /:::/  \\:::\\    \\             /:::/__\\:::\\    \\    " + Reset)
-	fmt.Println(Magenta + "     /:::/    /       /:::/    \\:::\\    \\           /::::\\   \\:::\\    \\   " + Reset)
-	fmt.Println(Magenta + "    /:::/    /       /:::/    / \\:::\\    \\         /::::::\\   \\:::\\    \\  " + Reset)
-	fmt.Println(Magenta + "   \\:::/    /        /:::/    /   \\:::\\    \\      /:::/\\:::\\   \\:::\\____\\ " + Reset)
-	fmt.Println(Magenta + "    \\:::/__/         /:::/____/     \\:::\\____\\    /:::/  \\:::\\   \\:::|    |" + Reset)
-	fmt.Println(Magenta + "     \\:::\\   \\       \\:::\\    \\      \\  /     /  /:::/   |::::\\  /:::|____|" + Reset)
-	fmt.Println(Magenta + "      \\:::\\   \\       \\:::\\    \\      \\/_____/  /___/    |:::::\\/:::/    / " + Reset)
-	fmt.Println(Magenta + "       \\:::\\   \\       \\:::\\    \\                        |:::::::::/    /  " + Reset)
-	fmt.Println(Magenta + "        \\:::\\   \\       \\:::\\    \\                       |::|\\::::/    /   " + Reset)
-	fmt.Println(Magenta + "         \\:::\\   \\       \\:::\\    \\                      |::| \\::/____/    " + Reset)
-	fmt.Println(Magenta + "          \\:::\\   \\       \\:::\\    \\                     |::|  ~|          " + Reset)
-	fmt.Println(Magenta + "           \\:::\\   \\       \\:::\\    \\                    |::|   |          " + Reset)
-	fmt.Println(Magenta + "            \\:::\\___\\       \\:::\\____\\                   \\::|   |          " + Reset)
-	fmt.Println(Magenta + "             \\::/    /        \\::/    /                   \\:|   |          " + Reset)
-	fmt.Println(Magenta + "              \\/____/ocal      \\/____/ontainer             \\|___|egistry          " + Reset)
-<<<<<<< Updated upstream
-	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
-	fmt.Println(Magenta+" |", "                Commit SHA                 |            ", "PR Description            |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
-	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
-	loginToGithub()
-=======
-	fmt.Println(Magenta + " -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
-	fmt.Println(Magenta+" |", "                Commit SHA                 |                   ", "PR Description                   |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
-	fmt.Println(Magenta + " |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|" + Reset)
-	fmt.Println(Magenta+" |  ", commit.GetSHA(), "|", commitMessage, "|-----------------|--------------------|-------------------|-----------------------|"+Reset)
->>>>>>> Stashed changes
+	fmt.Println(utils.Magenta + " -----------------------------------------------------------------------------------------------" + Reset)
+	fmt.Println(utils.Magenta + "            _____            _____                         _____          " + Reset)
+	fmt.Println(utils.Magenta + "           /\\    \\          /\\    \\                       /\\    \\         " + Reset)
+	fmt.Println(utils.Magenta + "          /::\\____\\        /::\\    \\                     /::\\    \\        " + Reset)
+	fmt.Println(utils.Magenta + "         /:::/    /       /::::\\    \\                   /::::\\    \\       " + Reset)
+	fmt.Println(utils.Magenta + "        /:::/    /       /::::::\\    \\                 /::::::\\    \\      " + Reset)
+	fmt.Println(utils.Magenta + "       /:::/    /       /:::/\\:::\\    \\               /:::/\\:::\\    \\     " + Reset)
+	fmt.Println(utils.Magenta + "      /:::/    /       /:::/  \\:::\\    \\             /:::/__\\:::\\    \\    " + Reset)
+	fmt.Println(utils.Magenta + "     /:::/    /       /:::/    \\:::\\    \\           /::::\\   \\:::\\    \\   " + Reset)
+	fmt.Println(utils.Magenta + "    /:::/    /       /:::/    / \\:::\\    \\         /::::::\\   \\:::\\    \\  " + Reset)
+	fmt.Println(utils.Magenta + "   \\:::/    /        /:::/    /   \\:::\\    \\      /:::/\\:::\\   \\:::\\____\\ " + Reset)
+	fmt.Println(utils.Magenta + "    \\:::/__/         /:::/____/     \\:::\\____\\    /:::/  \\:::\\   \\:::|    |" + Reset)
+	fmt.Println(utils.Magenta + "     \\:::\\   \\       \\:::\\    \\      \\  /     /  /:::/   |::::\\  /:::|____|" + Reset)
+	fmt.Println(utils.Magenta + "      \\:::\\   \\       \\:::\\    \\      \\/_____/  /___/    |:::::\\/:::/    / " + Reset)
+	fmt.Println(utils.Magenta + "       \\:::\\   \\       \\:::\\    \\                        |:::::::::/    /  " + Reset)
+	fmt.Println(utils.Magenta + "        \\:::\\   \\       \\:::\\    \\                       |::|\\::::/    /   " + Reset)
+	fmt.Println(utils.Magenta + "         \\:::\\   \\       \\:::\\    \\                      |::| \\::/____/    " + Reset)
+	fmt.Println(utils.Magenta + "          \\:::\\   \\       \\:::\\    \\                     |::|  ~|          " + Reset)
+	fmt.Println(utils.Magenta + "           \\:::\\   \\       \\:::\\    \\                    |::|   |          " + Reset)
+	fmt.Println(utils.Magenta + "            \\:::\\___\\       \\:::\\____\\                   \\::|   |          " + Reset)
+	fmt.Println(utils.Magenta + "             \\::/    /        \\::/    /                   \\:|   |          " + Reset)
+	fmt.Println(utils.Magenta + "              \\/____/ocal      \\/____/ontainer             \\|___|egistry          " + Reset)
+	fmt.Println(utils.Magenta + " -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
+	fmt.Println(utils.Magenta+" |", "                Commit SHA                 |                   ", "PR Description                   |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
+	fmt.Println(utils.Magenta + " |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|" + Reset)
+	fmt.Println(utils.Magenta+" |  ", commit.GetSHA(), "|", commitMessage, "|-----------------|--------------------|-------------------|-----------------------|"+Reset)
 
 	// TODO: [Tabs] - [Github] List the Github Commit SHA - DONE
 	// TODO: [Tabs] - [Github] List the Github PR-Description - DONE
