@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/google/go-github/v63/github"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -27,21 +29,52 @@ type Repositories struct {
 	prDescription string
 }
 
+<<<<<<< Updated upstream
 /*
 I want to be able to connect to a MySQL database and run a query to get the data I need.
 I want to be able to connect to a Postgres database and run a query to get the data I need.
 */
 
+=======
+// This init() function loads in the .env file into environment variables
+>>>>>>> Stashed changes
 func init() {
-	// loads .env file into environment
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found or could not load it:", err)
 	}
 }
 
+<<<<<<< Updated upstream
 // func loginToGithub() *github.RepositoryCommit {
 func loginToGithub() {
 	// Add styling to logging
+=======
+var db *sql.DB
+
+func main() {
+
+	// Capture connection properties for the MySQL database
+	cfg := mysql.NewConfig()
+	cfg.User = os.Getenv("MYSQL_USER")
+	cfg.Passwd = os.Getenv("MYSQL_ROOT_PASSWORD")
+	cfg.Net = "tcp"
+	cfg.Addr = "127.0.0.1:3306"
+	cfg.DBName = "images"
+
+	// Get a database handle.
+	var err error
+	db, err = sql.Open("mysql", cfg.FormatDSN())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	pingErr := db.Ping()
+	if pingErr != nil {
+		log.Fatal(pingErr)
+	}
+	fmt.Println("Connected!")
+
+>>>>>>> Stashed changes
 	var (
 		Green  = "\033[32m"
 		Reset  = "\033[0m"
@@ -56,7 +89,7 @@ func loginToGithub() {
 	owner := os.Getenv("GITHUB_OWNER")
 	repo := os.Getenv("GITHUB_REPO")
 	// repoData, _, err := client.Repositories.Get(context.Background(), owner, repo)
-	_, _, err := client.Repositories.Get(context.Background(), owner, repo)
+	// _, _, err := client.Repositories.Get(context.Background(), owner, repo)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,6 +128,7 @@ func loginToGithub() {
 
 }
 
+<<<<<<< Updated upstream
 func main() {
 	var (
 		Reset   = "\033[0m"
@@ -102,9 +136,33 @@ func main() {
 	)
 
 	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------" + Reset)
+=======
+	commitLength := len(commit.GetCommit().GetMessage())
+	commitMessage := commit.GetCommit().GetMessage()
+
+	if commitLength > 51 {
+		fmt.Println("Commit message is too long, trimming to 56 characters")
+		commitMessage = commitMessage[:51]
+	} else if commitLength < 51 {
+		fmt.Println("Commit message is too short, adding spaces to the end")
+		commitMessage = commitMessage[:51]
+	} else {
+		fmt.Println("Commit message is just right")
+	}
+
+	// fmt.Println("Commit message length:", commitLength)
+	fmt.Println("Commit message:", commitMessage)
+	fmt.Println("Inserting PR description into database...")
+	_, err = db.Exec("INSERT INTO images (PR_Description) VALUES (?)", commitMessage)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(Magenta + " -----------------------------------------------------------------------------------------------" + Reset)
+>>>>>>> Stashed changes
 	fmt.Println(Magenta + "            _____            _____                         _____          " + Reset)
-	fmt.Println(Magenta + "           /\\    \\         /\\    \\                       /\\    \\         " + Reset)
-	fmt.Println(Magenta + "          /::\\____\\       /::\\    \\                     /::\\    \\        " + Reset)
+	fmt.Println(Magenta + "           /\\    \\          /\\    \\                       /\\    \\         " + Reset)
+	fmt.Println(Magenta + "          /::\\____\\        /::\\    \\                     /::\\    \\        " + Reset)
 	fmt.Println(Magenta + "         /:::/    /       /::::\\    \\                   /::::\\    \\       " + Reset)
 	fmt.Println(Magenta + "        /:::/    /       /::::::\\    \\                 /::::::\\    \\      " + Reset)
 	fmt.Println(Magenta + "       /:::/    /       /:::/\\:::\\    \\               /:::/\\:::\\    \\     " + Reset)
@@ -123,10 +181,17 @@ func main() {
 	fmt.Println(Magenta + "            \\:::\\___\\       \\:::\\____\\                   \\::|   |          " + Reset)
 	fmt.Println(Magenta + "             \\::/    /        \\::/    /                   \\:|   |          " + Reset)
 	fmt.Println(Magenta + "              \\/____/ocal      \\/____/ontainer             \\|___|egistry          " + Reset)
+<<<<<<< Updated upstream
 	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
 	fmt.Println(Magenta+" |", "                Commit SHA                 |            ", "PR Description            |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
 	fmt.Println(Magenta + "------------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
 	loginToGithub()
+=======
+	fmt.Println(Magenta + " -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
+	fmt.Println(Magenta+" |", "                Commit SHA                 |                   ", "PR Description                   |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
+	fmt.Println(Magenta + " |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|" + Reset)
+	fmt.Println(Magenta+" |  ", commit.GetSHA(), "|", commitMessage, "|-----------------|--------------------|-------------------|-----------------------|"+Reset)
+>>>>>>> Stashed changes
 
 	// TODO: [Tabs] - [Github] List the Github Commit SHA - DONE
 	// TODO: [Tabs] - [Github] List the Github PR-Description - DONE
@@ -139,4 +204,55 @@ func main() {
 	// TODO: [Tabs] - [Deployment] - List
 	// TODO: [Tabs] - [Deployment] - Push
 	// TODO: [Tabs] - [Deployment] - Delete
+
+	insertIntoPostgresDB(commit.GetSHA(), commitMessage)
+	getFromPostgresDB()
+
+}
+
+// I need to insert git commits into the mysql database
+func insertIntoPostgresDB(commitSHA string, commitMessage string) {
+	// Connect to the database
+	db, err := sql.Open("postgres", "user=root password=new_password dbname=images sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	// Insert the commit SHA and PR description into the database
+	fmt.Println("Inserting commit SHA and PR description into the database...")
+	query := `INSERT INTO images (commit_sha, pr_description) VALUES ($1, $2)`
+	_, err = db.Exec(query, commitSHA, commitMessage)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Commit SHA and PR description inserted into the database.")
+	fmt.Println("Commit SHA:", commitSHA)
+	fmt.Println("PR Description:", commitMessage)
+}
+
+// I need to get git commits from the MySQL database
+func getFromPostgresDB() {
+	// Connect to the database
+	db, err := sql.Open("postgres", "user=root password=new_password dbname=images sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	// Get the commit SHA and PR description from the database
+	query := `SELECT commit_sha, pr_description FROM images`
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var commitSHA string
+		var prDescription string
+		err := rows.Scan(&commitSHA, &prDescription)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Commit SHA:", commitSHA)
+		fmt.Println("PR Description:", prDescription)
+	}
 }
