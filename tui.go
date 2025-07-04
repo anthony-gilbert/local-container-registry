@@ -92,9 +92,9 @@ func startTUI(data []TableData) {
 	columns := []table.Column{
 		{Title: "Commit SHA", Width: 42},
 		{Title: "PR Description", Width: 35},
-		{Title: "Image ID", Width: 15},
-		{Title: "Image Size", Width: 12},
-		{Title: "Image Tag", Width: 15},
+		{Title: "Docker Image ID", Width: 15},
+		{Title: "Docker Image Size", Width: 12},
+		{Title: "Docker Image Tag", Width: 15},
 	}
 
 	var rows []table.Row

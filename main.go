@@ -42,7 +42,7 @@ func init() {
 var db *sql.DB
 
 func main() {
-	
+
 	// Capture connection properties for the MySQL database
 	cfg := mysql.NewConfig()
 	cfg.User = os.Getenv("MYSQL_USER")
@@ -128,7 +128,7 @@ func main() {
 	for _, commit := range commits {
 		commitMessage := commit.GetCommit().GetMessage()
 		fmt.Printf("Processing commit: %s\n", commitMessage)
-		
+
 		// Insert into MySQL database
 		_, err = db.Exec("INSERT INTO images (PR_Description) VALUES (?)", commitMessage)
 		if err != nil {
@@ -136,28 +136,6 @@ func main() {
 		}
 	}
 
-	fmt.Println(utils.Magenta + " -----------------------------------------------------------------------------------------------" + Reset)
-	fmt.Println(utils.Magenta + "            _____            _____                         _____          " + Reset)
-	fmt.Println(utils.Magenta + "           /\\    \\          /\\    \\                       /\\    \\         " + Reset)
-	fmt.Println(utils.Magenta + "          /::\\____\\        /::\\    \\                     /::\\    \\        " + Reset)
-	fmt.Println(utils.Magenta + "         /:::/    /       /::::\\    \\                   /::::\\    \\       " + Reset)
-	fmt.Println(utils.Magenta + "        /:::/    /       /::::::\\    \\                 /::::::\\    \\      " + Reset)
-	fmt.Println(utils.Magenta + "       /:::/    /       /:::/\\:::\\    \\               /:::/\\:::\\    \\     " + Reset)
-	fmt.Println(utils.Magenta + "      /:::/    /       /:::/  \\:::\\    \\             /:::/__\\:::\\    \\    " + Reset)
-	fmt.Println(utils.Magenta + "     /:::/    /       /:::/    \\:::\\    \\           /::::\\   \\:::\\    \\   " + Reset)
-	fmt.Println(utils.Magenta + "    /:::/    /       /:::/    / \\:::\\    \\         /::::::\\   \\:::\\    \\  " + Reset)
-	fmt.Println(utils.Magenta + "   \\:::/    /        /:::/    /   \\:::\\    \\      /:::/\\:::\\   \\:::\\____\\ " + Reset)
-	fmt.Println(utils.Magenta + "    \\:::/__/         /:::/____/     \\:::\\____\\    /:::/  \\:::\\   \\:::|    |" + Reset)
-	fmt.Println(utils.Magenta + "     \\:::\\   \\       \\:::\\    \\      \\  /     /  /:::/   |::::\\  /:::|____|" + Reset)
-	fmt.Println(utils.Magenta + "      \\:::\\   \\       \\:::\\    \\      \\/_____/  /___/    |:::::\\/:::/    / " + Reset)
-	fmt.Println(utils.Magenta + "       \\:::\\   \\       \\:::\\    \\                        |:::::::::/    /  " + Reset)
-	fmt.Println(utils.Magenta + "        \\:::\\   \\       \\:::\\    \\                       |::|\\::::/    /   " + Reset)
-	fmt.Println(utils.Magenta + "         \\:::\\   \\       \\:::\\    \\                      |::| \\::/____/    " + Reset)
-	fmt.Println(utils.Magenta + "          \\:::\\   \\       \\:::\\    \\                     |::|  ~|          " + Reset)
-	fmt.Println(utils.Magenta + "           \\:::\\   \\       \\:::\\    \\                    |::|   |          " + Reset)
-	fmt.Println(utils.Magenta + "            \\:::\\___\\       \\:::\\____\\                   \\::|   |          " + Reset)
-	fmt.Println(utils.Magenta + "             \\::/    /        \\::/    /                   \\:|   |          " + Reset)
-	fmt.Println(utils.Magenta + "              \\/____/ocal      \\/____/ontainer             \\|___|egistry          " + Reset)
 	fmt.Println(utils.Magenta + " -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
 	fmt.Println(utils.Magenta+" |", "                Commit SHA                 |                   ", "PR Description                   |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
 	fmt.Println(utils.Magenta + " |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|" + Reset)
@@ -187,7 +165,7 @@ func main() {
 			CommitSHA:     commit.GetSHA(),
 			PRDescription: commitMessage,
 			ImageID:       "N/A",
-			ImageSize:     "N/A", 
+			ImageSize:     "N/A",
 			ImageTag:      "N/A",
 		})
 	}
