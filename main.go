@@ -85,16 +85,25 @@ func main() {
 	// fmt.Printf("Repository Name: %s\n", repoData.GetName())
 	// fmt.Printf("Repository Description: %s\n", repoData.GetDescription())
 	branch := "master"
-	commit, _, err := client.Repositories.GetCommit(context.Background(), owner, repo, branch, nil)
+	// Get multiple commits instead of just one
+	commits, _, err := client.Repositories.ListCommits(context.Background(), owner, repo, &github.CommitsListOptions{
+		SHA: branch,
+		ListOptions: github.ListOptions{
+			Page:    1,
+			PerPage: 10, // Get last 10 commits
+		},
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	println(Green + "Logged into Github" + Reset)
 	fmt.Println("------------------------------------------------------------------------------------------------")
-	// fmt.Printf("Last commit on master branch:\n")
-	fmt.Printf("Last Full commit message on master branch: %s\n", commit.GetCommit().GetMessage())
-	fmt.Printf("SHA: %s\n", commit.GetSHA())
+	fmt.Printf("Found %d commits on master branch\n", len(commits))
+	if len(commits) > 0 {
+		fmt.Printf("Latest commit: %s\n", commits[0].GetCommit().GetMessage())
+		fmt.Printf("SHA: %s\n", commits[0].GetSHA())
+	}
 
 	// fmt.Printf("Owner: %v\n", repoData.GetOwner())
 	// fmt.Printf("repo: %+v\n", repoData.GetFullName())
@@ -115,25 +124,16 @@ func main() {
 	// 	fmt.Printf("URL: %s\n", repoData.GetURL())
 	// 	fmt.Println("Logged into Github")
 
-	commitLength := len(commit.GetCommit().GetMessage())
-	commitMessage := commit.GetCommit().GetMessage()
-
-	if commitLength > 51 {
-		fmt.Println("Commit message is too long, trimming to 56 characters")
-		commitMessage = commitMessage[:51]
-	} else if commitLength < 51 {
-		fmt.Println("Commit message is too short, adding spaces to the end")
-		commitMessage = fmt.Sprintf("%-51s", commitMessage)
-	} else {
-		fmt.Println("Commit message is just right")
-	}
-
-	// fmt.Println("Commit message length:", commitLength)
-	fmt.Println("Commit message:", commitMessage)
-	fmt.Println("Inserting PR description into database...")
-	_, err = db.Exec("INSERT INTO images (PR_Description) VALUES (?)", commitMessage)
-	if err != nil {
-		log.Fatal(err)
+	// Process each commit for database insertion
+	for _, commit := range commits {
+		commitMessage := commit.GetCommit().GetMessage()
+		fmt.Printf("Processing commit: %s\n", commitMessage)
+		
+		// Insert into MySQL database
+		_, err = db.Exec("INSERT INTO images (PR_Description) VALUES (?)", commitMessage)
+		if err != nil {
+			log.Printf("Error inserting commit into MySQL: %v", err)
+		}
 	}
 
 	fmt.Println(utils.Magenta + " -----------------------------------------------------------------------------------------------" + Reset)
@@ -161,7 +161,11 @@ func main() {
 	fmt.Println(utils.Magenta + " -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
 	fmt.Println(utils.Magenta+" |", "                Commit SHA                 |                   ", "PR Description                   |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
 	fmt.Println(utils.Magenta + " |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|" + Reset)
-	fmt.Println(utils.Magenta+" |  ", commit.GetSHA(), "|", commitMessage, "|-----------------|--------------------|-------------------|-----------------------|"+Reset)
+	// Display commits in the ASCII table
+	for _, commit := range commits {
+		commitMessage := commit.GetCommit().GetMessage()
+		fmt.Println(utils.Magenta+" |  ", commit.GetSHA(), "|", commitMessage, "|-----------------|--------------------|-------------------|-----------------------|"+Reset)
+	}
 
 	// TODO: [Tabs] - [Github] List the Github Commit SHA - DONE
 	// TODO: [Tabs] - [Github] List the Github PR-Description - DONE
@@ -175,15 +179,17 @@ func main() {
 	// TODO: [Tabs] - [Deployment] - Push
 	// TODO: [Tabs] - [Deployment] - Delete
 
-	// Start TUI with collected data
-	tableData := []TableData{
-		{
+	// Start TUI with collected data from all commits
+	var tableData []TableData
+	for _, commit := range commits {
+		commitMessage := commit.GetCommit().GetMessage()
+		tableData = append(tableData, TableData{
 			CommitSHA:     commit.GetSHA(),
 			PRDescription: commitMessage,
 			ImageID:       "N/A",
 			ImageSize:     "N/A", 
 			ImageTag:      "N/A",
-		},
+		})
 	}
 	startTUI(tableData)
 }
