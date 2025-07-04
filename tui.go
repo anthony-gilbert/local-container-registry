@@ -90,8 +90,8 @@ func truncateString(s string, maxLen int) string {
 
 func startTUI(data []TableData) {
 	columns := []table.Column{
-		{Title: "Commit SHA", Width: 42},
-		{Title: "PR Description", Width: 30},
+		{Title: "Git Commit SHA", Width: 42},
+		{Title: "Git PR Description", Width: 30},
 		{Title: "Docker Image ID", Width: 15},
 		{Title: "Image Size", Width: 12},
 		{Title: "Image Tag", Width: 35},
