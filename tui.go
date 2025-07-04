@@ -76,8 +76,8 @@ func truncateString(s string, maxLen int) string {
 
 func startTUI(data []TableData) {
 	columns := []table.Column{
-		{Title: "Commit SHA", Width: 20},
-		{Title: "PR Description", Width: 30},
+		{Title: "Commit SHA", Width: 42},
+		{Title: "PR Description", Width: 35},
 		{Title: "Image ID", Width: 15},
 		{Title: "Image Size", Width: 12},
 		{Title: "Image Tag", Width: 15},
@@ -86,8 +86,8 @@ func startTUI(data []TableData) {
 	var rows []table.Row
 	for _, item := range data {
 		rows = append(rows, table.Row{
-			truncateString(item.CommitSHA, 20),
-			truncateString(item.PRDescription, 30),
+			item.CommitSHA, // Show full SHA without truncation
+			truncateString(item.PRDescription, 35),
 			truncateString(item.ImageID, 15),
 			truncateString(item.ImageSize, 12),
 			truncateString(item.ImageTag, 15),
