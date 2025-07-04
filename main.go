@@ -7,8 +7,6 @@ import (
 	"log"
 	"os"
 
-	utils "github.com/anthonygilbertt/local-container-registry/src"
-
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/go-github/v63/github"
 	"github.com/joho/godotenv"
@@ -134,15 +132,6 @@ func main() {
 		if err != nil {
 			log.Printf("Error inserting commit into MySQL: %v", err)
 		}
-	}
-
-	fmt.Println(utils.Magenta + " -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------" + Reset)
-	fmt.Println(utils.Magenta+" |", "                Commit SHA                 |                   ", "PR Description                   |", "  Image ID   | ", "  Image Size   | ", "  Image Tag   |"+Reset)
-	fmt.Println(utils.Magenta + " |----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|" + Reset)
-	// Display commits in the ASCII table
-	for _, commit := range commits {
-		commitMessage := commit.GetCommit().GetMessage()
-		fmt.Println(utils.Magenta+" |  ", commit.GetSHA(), "|", commitMessage, "|-----------------|--------------------|-------------------|-----------------------|"+Reset)
 	}
 
 	// TODO: [Tabs] - [Github] List the Github Commit SHA - DONE
