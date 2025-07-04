@@ -1,11 +1,15 @@
 package main
 
+//go:generate go run build.go
+
 import (
 	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/google/go-github/v63/github"
@@ -29,6 +33,12 @@ type Repositories struct {
 	prDescription string
 }
 
+type DockerImage struct {
+	ID       string
+	RepoTags []string
+	Size     string
+}
+
 // This init() function loads in the .env file into environment variables
 
 func init() {
@@ -39,8 +49,80 @@ func init() {
 
 var db *sql.DB
 
-func main() {
+func getDockerImageInfo() (*DockerImage, error) {
+	// Use docker images with custom format to get the info we need
+	cmd := exec.Command("docker", "images", "--format", "{{.ID}},{{.Repository}}:{{.Tag}},{{.Size}}", "local-container-registry")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get docker images: %v", err)
+	}
+	
+	if len(output) == 0 {
+		return &DockerImage{
+			ID:       "Not Found",
+			RepoTags: []string{"N/A"},
+			Size:     "N/A",
+		}, nil
+	}
+	
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	if len(lines) == 0 {
+		return &DockerImage{
+			ID:       "Not Found",
+			RepoTags: []string{"N/A"},
+			Size:     "N/A",
+		}, nil
+	}
+	
+	// Parse the first line (most recent image)
+	parts := strings.Split(lines[0], ",")
+	if len(parts) >= 3 {
+		return &DockerImage{
+			ID:       parts[0],
+			RepoTags: []string{parts[1]},
+			Size:     parts[2], // Size as string from docker images
+		}, nil
+	}
+	
+	return &DockerImage{
+		ID:       "Parse Error",
+		RepoTags: []string{"N/A"},
+		Size:     "N/A",
+	}, nil
+}
 
+func formatSize(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+func main() {
+	// Check if DOCKER_BUILD environment variable is set
+	if os.Getenv("DOCKER_BUILD") == "true" {
+		fmt.Println("🐳 Building Docker image...")
+		
+		cmd := exec.Command("docker", "build", "-t", "local-container-registry", ".")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		
+		err := cmd.Run()
+		if err != nil {
+			log.Fatalf("❌ Docker build failed: %v", err)
+		}
+		
+		fmt.Println("✅ Docker image built successfully!")
+		fmt.Println("🚀 You can now run: docker run --rm -it local-container-registry")
+		return
+	}
+	
 	// Capture connection properties for the MySQL database
 	cfg := mysql.NewConfig()
 	cfg.User = os.Getenv("MYSQL_USER")
@@ -146,6 +228,33 @@ func main() {
 	// TODO: [Tabs] - [Deployment] - Push
 	// TODO: [Tabs] - [Deployment] - Delete
 
+	// Get Docker image information
+	dockerInfo, err := getDockerImageInfo()
+	if err != nil {
+		log.Printf("Warning: Could not get Docker image info: %v", err)
+		dockerInfo = &DockerImage{
+			ID:       "Error",
+			RepoTags: []string{"N/A"},
+			Size:     "N/A",
+		}
+	}
+
+	// Format Docker data
+	imageID := dockerInfo.ID
+	if len(imageID) > 12 {
+		imageID = imageID[:12] // Show short ID like Docker CLI
+	}
+	
+	imageTag := "N/A"
+	if len(dockerInfo.RepoTags) > 0 && dockerInfo.RepoTags[0] != "<none>:<none>" {
+		imageTag = dockerInfo.RepoTags[0]
+	}
+	
+	imageSize := dockerInfo.Size
+	if dockerInfo.Size == "" || dockerInfo.Size == "N/A" {
+		imageSize = "N/A"
+	}
+
 	// Start TUI with collected data from all commits
 	var tableData []TableData
 	for _, commit := range commits {
@@ -153,9 +262,9 @@ func main() {
 		tableData = append(tableData, TableData{
 			CommitSHA:     commit.GetSHA(),
 			PRDescription: commitMessage,
-			ImageID:       "N/A",
-			ImageSize:     "N/A",
-			ImageTag:      "N/A",
+			ImageID:       imageID,
+			ImageSize:     imageSize,
+			ImageTag:      imageTag,
 		})
 	}
 	startTUI(tableData)
