@@ -11,14 +11,14 @@ import (
 
 var (
 	baseStyle = lipgloss.NewStyle().
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240"))
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("240"))
 
 	titleStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#7D56F4")).
-		MarginBottom(2).
-		Align(lipgloss.Center)
+			Bold(true).
+			Foreground(lipgloss.Color("#7D56F4")).
+			MarginBottom(2).
+			Align(lipgloss.Center)
 )
 
 type TableData struct {
@@ -43,7 +43,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.table.SetWidth(msg.Width)
-		m.table.SetHeight(msg.Height - 6) // Leave space for title and instructions
+		m.table.SetHeight(msg.Height - 12) // Leave space for ASCII art and instructions
 		return m, nil
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
@@ -52,7 +52,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	}
-	
+
 	m.table, cmd = m.table.Update(msg)
 	return m, cmd
 }
@@ -62,9 +62,23 @@ func (m model) View() string {
 		return "Goodbye!\n"
 	}
 
-	title := titleStyle.Render("Local Container Registry")
-	
-	return fmt.Sprintf("%s\n\n%s\n\nPress 'q' to quit", title, baseStyle.Render(m.table.View()))
+	asciiArt := `
+██╗            ██████╗           ██████╗ 
+██║           ██╔════╝           ██╔══██╗
+██║           ██║                ██████╔╝
+██║           ██║                ██╔══██╗
+███████╗      ╚██████╗           ██║  ██║
+       ╚══════╝ ocal  ╚═════╝ container ╚═╝  ╚═╝ egistry
+`
+
+	artStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#7D56F4")).
+		Bold(true).
+		Align(lipgloss.Center)
+
+	styledArt := artStyle.Render(asciiArt)
+
+	return fmt.Sprintf("%s\n\n%s\n\nPress 'q' to quit", styledArt, baseStyle.Render(m.table.View()))
 }
 
 func truncateString(s string, maxLen int) string {
@@ -98,7 +112,7 @@ func startTUI(data []TableData) {
 		table.WithColumns(columns),
 		table.WithRows(rows),
 		table.WithFocused(true),
-		table.WithHeight(7),
+		table.WithHeight(10),
 	)
 
 	s := table.DefaultStyles()
