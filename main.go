@@ -42,7 +42,7 @@ func init() {
 var db *sql.DB
 
 func main() {
-
+	
 	// Capture connection properties for the MySQL database
 	cfg := mysql.NewConfig()
 	cfg.User = os.Getenv("MYSQL_USER")
@@ -123,7 +123,7 @@ func main() {
 		commitMessage = commitMessage[:51]
 	} else if commitLength < 51 {
 		fmt.Println("Commit message is too short, adding spaces to the end")
-		commitMessage = commitMessage[:51]
+		commitMessage = fmt.Sprintf("%-51s", commitMessage)
 	} else {
 		fmt.Println("Commit message is just right")
 	}
@@ -175,9 +175,17 @@ func main() {
 	// TODO: [Tabs] - [Deployment] - Push
 	// TODO: [Tabs] - [Deployment] - Delete
 
-	insertIntoPostgresDB(commit.GetSHA(), commitMessage)
-	getFromPostgresDB()
-
+	// Start TUI with collected data
+	tableData := []TableData{
+		{
+			CommitSHA:     commit.GetSHA(),
+			PRDescription: commitMessage,
+			ImageID:       "N/A",
+			ImageSize:     "N/A", 
+			ImageTag:      "N/A",
+		},
+	}
+	startTUI(tableData)
 }
 
 // I need to insert git commits into the mysql database
