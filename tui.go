@@ -94,7 +94,7 @@ func startTUI(data []TableData) {
 		{Title: "Git PR Description", Width: 30},
 		{Title: "Docker Image ID", Width: 15},
 		{Title: "Image Size", Width: 12},
-		{Title: "Image Tag", Width: 35},
+		{Title: "Docker Image Tag", Width: 35},
 	}
 
 	var rows []table.Row
