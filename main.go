@@ -39,6 +39,14 @@ type DockerImage struct {
 	Size     string
 }
 
+type TableData struct {
+	CommitSHA     string
+	PRDescription string
+	ImageID       string
+	ImageSize     string
+	ImageTag      string
+}
+
 // This init() function loads in the .env file into environment variables
 
 func init() {
@@ -56,7 +64,7 @@ func getDockerImageInfo() (*DockerImage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get docker images: %v", err)
 	}
-	
+
 	if len(output) == 0 {
 		return &DockerImage{
 			ID:       "Not Found",
@@ -64,7 +72,7 @@ func getDockerImageInfo() (*DockerImage, error) {
 			Size:     "N/A",
 		}, nil
 	}
-	
+
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(lines) == 0 {
 		return &DockerImage{
@@ -73,7 +81,7 @@ func getDockerImageInfo() (*DockerImage, error) {
 			Size:     "N/A",
 		}, nil
 	}
-	
+
 	// Parse the first line (most recent image)
 	parts := strings.Split(lines[0], ",")
 	if len(parts) >= 3 {
@@ -83,7 +91,7 @@ func getDockerImageInfo() (*DockerImage, error) {
 			Size:     parts[2], // Size as string from docker images
 		}, nil
 	}
-	
+
 	return &DockerImage{
 		ID:       "Parse Error",
 		RepoTags: []string{"N/A"},
@@ -108,21 +116,21 @@ func main() {
 	// Check if DOCKER_BUILD environment variable is set
 	if os.Getenv("DOCKER_BUILD") == "true" {
 		fmt.Println("🐳 Building Docker image...")
-		
+
 		cmd := exec.Command("docker", "build", "-t", "local-container-registry", ".")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		
+
 		err := cmd.Run()
 		if err != nil {
 			log.Fatalf("❌ Docker build failed: %v", err)
 		}
-		
+
 		fmt.Println("✅ Docker image built successfully!")
 		fmt.Println("🚀 You can now run: docker run --rm -it local-container-registry")
 		return
 	}
-	
+
 	// Capture connection properties for the MySQL database
 	cfg := mysql.NewConfig()
 	cfg.User = os.Getenv("MYSQL_USER")
@@ -157,11 +165,6 @@ func main() {
 	client := github.NewClient(nil).WithAuthToken(os.Getenv("gitHubAuth"))
 	owner := os.Getenv("GITHUB_OWNER")
 	repo := os.Getenv("GITHUB_REPO")
-	// repoData, _, err := client.Repositories.Get(context.Background(), owner, repo)
-	// _, _, err := client.Repositories.Get(context.Background(), owner, repo)
-	if err != nil {
-		log.Fatal(err)
-	}
 	// fmt.Printf("Repository Name: %s\n", repoData.GetName())
 	// fmt.Printf("Repository Description: %s\n", repoData.GetDescription())
 	branch := "master"
@@ -244,12 +247,12 @@ func main() {
 	if len(imageID) > 12 {
 		imageID = imageID[:12] // Show short ID like Docker CLI
 	}
-	
+
 	imageTag := "N/A"
 	if len(dockerInfo.RepoTags) > 0 && dockerInfo.RepoTags[0] != "<none>:<none>" {
 		imageTag = dockerInfo.RepoTags[0]
 	}
-	
+
 	imageSize := dockerInfo.Size
 	if dockerInfo.Size == "" || dockerInfo.Size == "N/A" {
 		imageSize = "N/A"
