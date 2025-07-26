@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -31,6 +32,9 @@ var (
 				Padding(0, 1)
 
 	tabContainerStyle = lipgloss.NewStyle()
+
+	separatorStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("240"))
 )
 
 type model struct {
@@ -230,13 +234,17 @@ func (m model) View() string {
 
 	styledArt := artStyle.Render(asciiArt)
 
-	// Render tabs
+	// Render tabs with spacing
 	var tabsRender []string
 	for i, tab := range m.tabs {
 		if i == m.activeTab {
 			tabsRender = append(tabsRender, activeTabStyle.Render(tab))
 		} else {
 			tabsRender = append(tabsRender, inactiveTabStyle.Render(tab))
+		}
+		// Add space after each tab except the last one
+		if i < len(m.tabs)-1 {
+			tabsRender = append(tabsRender, " ")
 		}
 	}
 
@@ -245,13 +253,22 @@ func (m model) View() string {
 
 	instructions := "Press 1-3 to switch tabs, Tab to cycle, 'q' to quit"
 
-	// Create border style with proper width
-	tableStyle := baseStyle.Width(m.width - 2) // Account for border padding
+	// Create border style with proper width that encompasses both tabs and table
+	containerStyle := baseStyle.Width(m.width - 2) // Account for border padding
 	
-	// Combine tabs and table without spacing
-	tabsAndTable := lipgloss.JoinVertical(lipgloss.Left, tabs, tableStyle.Render(m.table.View()))
+	// Create separator between tabs and table
+	separatorWidth := m.width - 4
+	if separatorWidth < 0 {
+		separatorWidth = 0 // Prevent negative repeat count
+	}
+	separatorLine := strings.Repeat("─", separatorWidth)
+	separator := separatorStyle.Render(separatorLine)
 	
-	return fmt.Sprintf("%s\n\n%s\n\n%s", styledArt, tabsAndTable, instructions)
+	// Combine tabs, separator, and table, then apply border around all
+	tabsAndTable := lipgloss.JoinVertical(lipgloss.Left, tabs, separator, m.table.View())
+	borderedContainer := containerStyle.Render(tabsAndTable)
+	
+	return fmt.Sprintf("%s\n\n%s\n\n%s", styledArt, borderedContainer, instructions)
 }
 
 func truncateString(s string, maxLen int) string {
