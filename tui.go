@@ -11,30 +11,28 @@ import (
 
 var (
 	baseStyle = lipgloss.NewStyle().
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240"))
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("240"))
 
 	titleStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#7D56F4")).
-		MarginBottom(2).
-		Align(lipgloss.Center)
+			Bold(true).
+			Foreground(lipgloss.Color("#7D56F4")).
+			MarginBottom(2).
+			Align(lipgloss.Center)
 
 	activeTabStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#FFFFFF")).
-		Background(lipgloss.Color("#7D56F4")).
-		Padding(0, 1)
+			Bold(true).
+			Foreground(lipgloss.Color("#FFFFFF")).
+			Background(lipgloss.Color("#7D56F4")).
+			Padding(0, 1)
 
 	inactiveTabStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#999999")).
-		Padding(0, 1)
+				Foreground(lipgloss.Color("#999999")).
+				Padding(0, 1)
 
 	tabContainerStyle = lipgloss.NewStyle().
-		MarginBottom(1)
+				MarginBottom(1)
 )
-
-
 
 type model struct {
 	table      table.Model
@@ -86,6 +84,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *model) updateTableForTab() {
+	// Add panic recovery to prevent unexpected exits
+	defer func() {
+		if r := recover(); r != nil {
+			// If there's a panic, just return without doing anything
+			// This prevents the program from crashing
+			return
+		}
+	}()
+
+	// Validate that we have a valid table
+	if m.table.Columns() == nil {
+		return
+	}
+
 	var columns []table.Column
 	var rows []table.Row
 
@@ -97,12 +109,22 @@ func (m *model) updateTableForTab() {
 			{Title: "Author", Width: 20},
 			{Title: "Date", Width: 20},
 		}
-		for _, item := range m.gitData {
+		if len(m.gitData) > 0 {
+			for _, item := range m.gitData {
+				rows = append(rows, table.Row{
+					item.CommitSHA,
+					truncateString(item.PRDescription, 50),
+					"N/A", // Placeholder for author
+					"N/A", // Placeholder for date
+				})
+			}
+		} else {
+			// Add a placeholder row if no data
 			rows = append(rows, table.Row{
-				item.CommitSHA,
-				truncateString(item.PRDescription, 50),
-				"N/A", // Placeholder for author
-				"N/A", // Placeholder for date
+				"No data available",
+				"",
+				"",
+				"",
 			})
 		}
 	case 1: // Docker tab
@@ -138,10 +160,50 @@ func (m *model) updateTableForTab() {
 			"0",
 			"N/A",
 		})
+	default:
+		// Default to Git tab if something goes wrong
+		columns = []table.Column{
+			{Title: "Commit SHA", Width: 42},
+			{Title: "PR Description", Width: 50},
+			{Title: "Author", Width: 20},
+			{Title: "Date", Width: 20},
+		}
+		for _, item := range m.gitData {
+			rows = append(rows, table.Row{
+				item.CommitSHA,
+				truncateString(item.PRDescription, 50),
+				"N/A", // Placeholder for author
+				"N/A", // Placeholder for date
+			})
+		}
 	}
 
-	m.table.SetColumns(columns)
-	m.table.SetRows(rows)
+	// Safely update table with error handling
+	if len(columns) > 0 {
+		// Use defer to catch any panics from SetColumns
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// If SetColumns panics, just ignore it
+					return
+				}
+			}()
+			m.table.SetColumns(columns)
+		}()
+	}
+
+	if len(rows) >= 0 {
+		// Use defer to catch any panics from SetRows
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					// If SetRows panics, just ignore it
+					return
+				}
+			}()
+			m.table.SetRows(rows)
+		}()
+	}
 }
 
 func (m model) View() string {
@@ -174,7 +236,7 @@ func (m model) View() string {
 			tabsRender = append(tabsRender, inactiveTabStyle.Render(tab))
 		}
 	}
-	
+
 	tabsRow := lipgloss.JoinHorizontal(lipgloss.Top, tabsRender...)
 	tabs := tabContainerStyle.Render(tabsRow)
 
@@ -193,7 +255,7 @@ func truncateString(s string, maxLen int) string {
 func startTUI(data []TableData) {
 	// Initialize tabs
 	tabs := []string{"Git", "Docker", "Kubernetes"}
-	
+
 	// Initialize Git tab columns and rows
 	gitColumns := []table.Column{
 		{Title: "Commit SHA", Width: 42},
