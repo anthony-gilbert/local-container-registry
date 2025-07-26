@@ -144,7 +144,7 @@ func (m *model) updateTableForTab() {
 				"local-container-registry",
 				"latest",
 				item.ImageSize,
-				"N/A", // Placeholder for created date
+				item.CreatedAt,
 			})
 		}
 	case 2: // Kubernetes tab

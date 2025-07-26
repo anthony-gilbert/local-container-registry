@@ -34,9 +34,10 @@ type Repositories struct {
 }
 
 type DockerImage struct {
-	ID       string
-	RepoTags []string
-	Size     string
+	ID        string
+	RepoTags  []string
+	Size      string
+	CreatedAt string
 }
 
 type TableData struct {
@@ -46,6 +47,7 @@ type TableData struct {
 	ImageSize     string
 	ImageTag      string
 	PushedAt      string
+	CreatedAt     string
 }
 
 // This init() function loads in the .env file into environment variables
@@ -59,8 +61,8 @@ func init() {
 var db *sql.DB
 
 func getDockerImageInfo() (*DockerImage, error) {
-	// Use docker images with custom format to get the info we need
-	cmd := exec.Command("docker", "images", "--format", "{{.ID}},{{.Repository}}:{{.Tag}},{{.Size}}", "local-container-registry")
+	// Use docker images with custom format to get the info we need including creation time
+	cmd := exec.Command("docker", "images", "--format", "{{.ID}},{{.Repository}}:{{.Tag}},{{.Size}},{{.CreatedAt}}", "local-container-registry")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get docker images: %v", err)
@@ -68,35 +70,39 @@ func getDockerImageInfo() (*DockerImage, error) {
 
 	if len(output) == 0 {
 		return &DockerImage{
-			ID:       "Not Found",
-			RepoTags: []string{"N/A"},
-			Size:     "N/A",
+			ID:        "Not Found",
+			RepoTags:  []string{"N/A"},
+			Size:      "N/A",
+			CreatedAt: "N/A",
 		}, nil
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(lines) == 0 {
 		return &DockerImage{
-			ID:       "Not Found",
-			RepoTags: []string{"N/A"},
-			Size:     "N/A",
+			ID:        "Not Found",
+			RepoTags:  []string{"N/A"},
+			Size:      "N/A",
+			CreatedAt: "N/A",
 		}, nil
 	}
 
 	// Parse the first line (most recent image)
 	parts := strings.Split(lines[0], ",")
-	if len(parts) >= 3 {
+	if len(parts) >= 4 {
 		return &DockerImage{
-			ID:       parts[0],
-			RepoTags: []string{parts[1]},
-			Size:     parts[2], // Size as string from docker images
+			ID:        parts[0],
+			RepoTags:  []string{parts[1]},
+			Size:      parts[2],
+			CreatedAt: parts[3],
 		}, nil
 	}
 
 	return &DockerImage{
-		ID:       "Parse Error",
-		RepoTags: []string{"N/A"},
-		Size:     "N/A",
+		ID:        "Parse Error",
+		RepoTags:  []string{"N/A"},
+		Size:      "N/A",
+		CreatedAt: "N/A",
 	}, nil
 }
 
@@ -223,9 +229,10 @@ func main() {
 	if err != nil {
 		log.Printf("Warning: Could not get Docker image info: %v", err)
 		dockerInfo = &DockerImage{
-			ID:       "Error",
-			RepoTags: []string{"N/A"},
-			Size:     "N/A",
+			ID:        "Error",
+			RepoTags:  []string{"N/A"},
+			Size:      "N/A",
+			CreatedAt: "N/A",
 		}
 	}
 
@@ -263,6 +270,7 @@ func main() {
 			ImageSize:     imageSize,
 			ImageTag:      imageTag,
 			PushedAt:      pushedAt,
+			CreatedAt:     dockerInfo.CreatedAt,
 		})
 	}
 	startTUI(tableData)
