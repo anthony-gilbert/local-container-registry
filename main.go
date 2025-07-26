@@ -154,12 +154,6 @@ func main() {
 	owner := os.Getenv("GITHUB_OWNER")
 	repo := os.Getenv("GITHUB_REPO")
 	
-	// Get repository data
-	repoData, _, err := client.Repositories.Get(context.Background(), owner, repo)
-	if err != nil {
-		log.Printf("Warning: Could not get repository data: %v", err)
-	}
-	
 	branch := "master"
 	// Get multiple commits instead of just one
 	commits, _, err := client.Repositories.ListCommits(context.Background(), owner, repo, &github.CommitsListOptions{
@@ -256,10 +250,10 @@ func main() {
 	for _, commit := range commits {
 		commitMessage := commit.GetCommit().GetMessage()
 		
-		// Get PushedAt from repository data
+		// Get PushedAt from individual commit date
 		pushedAt := "N/A"
-		if repoData != nil && repoData.PushedAt != nil {
-			pushedAt = repoData.GetPushedAt().Format("2006-01-02 15:04:05")
+		if commit.GetCommit() != nil && commit.GetCommit().GetAuthor() != nil {
+			pushedAt = commit.GetCommit().GetAuthor().GetDate().Format("2006-01-02 15:04:05")
 		}
 		
 		tableData = append(tableData, TableData{
