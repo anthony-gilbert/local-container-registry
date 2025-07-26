@@ -42,6 +42,8 @@ type model struct {
 	gitData    []TableData
 	dockerData []TableData
 	kubesData  []TableData
+	width      int
+	height     int
 }
 
 func (m model) Init() tea.Cmd {
@@ -52,6 +54,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 		m.table.SetWidth(msg.Width)
 		m.table.SetHeight(msg.Height - 15) // Leave space for ASCII art, tabs, and instructions
 		return m, nil
@@ -105,17 +109,17 @@ func (m *model) updateTableForTab() {
 	case 0: // Git tab
 		columns = []table.Column{
 			{Title: "Commit SHA", Width: 42},
-			{Title: "PR Description", Width: 50},
+			{Title: "PR Description", Width: 40},
 			{Title: "Author", Width: 20},
-			{Title: "Date", Width: 20},
+			{Title: "PushedAt", Width: 20},
 		}
 		if len(m.gitData) > 0 {
 			for _, item := range m.gitData {
 				rows = append(rows, table.Row{
 					item.CommitSHA,
-					truncateString(item.PRDescription, 50),
+					truncateString(item.PRDescription, 40),
 					"N/A", // Placeholder for author
-					"N/A", // Placeholder for date
+					item.PushedAt,
 				})
 			}
 		} else {
@@ -164,16 +168,16 @@ func (m *model) updateTableForTab() {
 		// Default to Git tab if something goes wrong
 		columns = []table.Column{
 			{Title: "Commit SHA", Width: 42},
-			{Title: "PR Description", Width: 50},
+			{Title: "PR Description", Width: 40},
 			{Title: "Author", Width: 20},
-			{Title: "Date", Width: 20},
+			{Title: "PushedAt", Width: 20},
 		}
 		for _, item := range m.gitData {
 			rows = append(rows, table.Row{
 				item.CommitSHA,
-				truncateString(item.PRDescription, 50),
+				truncateString(item.PRDescription, 40),
 				"N/A", // Placeholder for author
-				"N/A", // Placeholder for date
+				item.PushedAt,
 			})
 		}
 	}
@@ -242,7 +246,10 @@ func (m model) View() string {
 
 	instructions := "Press 1-3 to switch tabs, Tab to cycle, 'q' to quit"
 
-	return fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s", styledArt, tabs, baseStyle.Render(m.table.View()), instructions)
+	// Create border style with proper width
+	tableStyle := baseStyle.Width(m.width - 2) // Account for border padding
+	
+	return fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s", styledArt, tabs, tableStyle.Render(m.table.View()), instructions)
 }
 
 func truncateString(s string, maxLen int) string {
@@ -259,18 +266,18 @@ func startTUI(data []TableData) {
 	// Initialize Git tab columns and rows
 	gitColumns := []table.Column{
 		{Title: "Commit SHA", Width: 42},
-		{Title: "PR Description", Width: 50},
+		{Title: "PR Description", Width: 40},
 		{Title: "Author", Width: 20},
-		{Title: "Date", Width: 20},
+		{Title: "PushedAt", Width: 20},
 	}
 
 	var gitRows []table.Row
 	for _, item := range data {
 		gitRows = append(gitRows, table.Row{
 			item.CommitSHA,
-			truncateString(item.PRDescription, 50),
+			truncateString(item.PRDescription, 40),
 			"N/A", // Placeholder for author
-			"N/A", // Placeholder for date
+			item.PushedAt,
 		})
 	}
 

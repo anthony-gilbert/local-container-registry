@@ -45,6 +45,7 @@ type TableData struct {
 	ImageID       string
 	ImageSize     string
 	ImageTag      string
+	PushedAt      string
 }
 
 // This init() function loads in the .env file into environment variables
@@ -97,19 +98,6 @@ func getDockerImageInfo() (*DockerImage, error) {
 		RepoTags: []string{"N/A"},
 		Size:     "N/A",
 	}, nil
-}
-
-func formatSize(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
 func main() {
@@ -165,8 +153,13 @@ func main() {
 	client := github.NewClient(nil).WithAuthToken(os.Getenv("gitHubAuth"))
 	owner := os.Getenv("GITHUB_OWNER")
 	repo := os.Getenv("GITHUB_REPO")
-	// fmt.Printf("Repository Name: %s\n", repoData.GetName())
-	// fmt.Printf("Repository Description: %s\n", repoData.GetDescription())
+	
+	// Get repository data
+	repoData, _, err := client.Repositories.Get(context.Background(), owner, repo)
+	if err != nil {
+		log.Printf("Warning: Could not get repository data: %v", err)
+	}
+	
 	branch := "master"
 	// Get multiple commits instead of just one
 	commits, _, err := client.Repositories.ListCommits(context.Background(), owner, repo, &github.CommitsListOptions{
@@ -262,12 +255,20 @@ func main() {
 	var tableData []TableData
 	for _, commit := range commits {
 		commitMessage := commit.GetCommit().GetMessage()
+		
+		// Get PushedAt from repository data
+		pushedAt := "N/A"
+		if repoData != nil && repoData.PushedAt != nil {
+			pushedAt = repoData.GetPushedAt().Format("2006-01-02 15:04:05")
+		}
+		
 		tableData = append(tableData, TableData{
 			CommitSHA:     commit.GetSHA(),
 			PRDescription: commitMessage,
 			ImageID:       imageID,
 			ImageSize:     imageSize,
 			ImageTag:      imageTag,
+			PushedAt:      pushedAt,
 		})
 	}
 	startTUI(tableData)
