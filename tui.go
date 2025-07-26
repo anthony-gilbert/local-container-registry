@@ -30,8 +30,7 @@ var (
 				Foreground(lipgloss.Color("#999999")).
 				Padding(0, 1)
 
-	tabContainerStyle = lipgloss.NewStyle().
-				MarginBottom(1)
+	tabContainerStyle = lipgloss.NewStyle()
 )
 
 type model struct {
@@ -249,7 +248,10 @@ func (m model) View() string {
 	// Create border style with proper width
 	tableStyle := baseStyle.Width(m.width - 2) // Account for border padding
 	
-	return fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s", styledArt, tabs, tableStyle.Render(m.table.View()), instructions)
+	// Combine tabs and table without spacing
+	tabsAndTable := lipgloss.JoinVertical(lipgloss.Left, tabs, tableStyle.Render(m.table.View()))
+	
+	return fmt.Sprintf("%s\n\n%s\n\n%s", styledArt, tabsAndTable, instructions)
 }
 
 func truncateString(s string, maxLen int) string {
