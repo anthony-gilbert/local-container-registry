@@ -261,7 +261,7 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-func startTUI(data []TableData) {
+func startTUI(gitData []TableData, dockerData []TableData) {
 	// Initialize tabs
 	tabs := []string{"Git", "Docker", "Kubernetes"}
 
@@ -274,7 +274,7 @@ func startTUI(data []TableData) {
 	}
 
 	var gitRows []table.Row
-	for _, item := range data {
+	for _, item := range gitData {
 		gitRows = append(gitRows, table.Row{
 			item.CommitSHA,
 			truncateString(item.PRDescription, 40),
@@ -306,9 +306,9 @@ func startTUI(data []TableData) {
 		table:      t,
 		activeTab:  0,
 		tabs:       tabs,
-		gitData:    data,
-		dockerData: data, // Reuse same data for now
-		kubesData:  data, // Reuse same data for now
+		gitData:    gitData,
+		dockerData: dockerData,
+		kubesData:  gitData, // Reuse git data for kubernetes tab
 	}
 
 	p := tea.NewProgram(m, tea.WithAltScreen())

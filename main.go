@@ -60,50 +60,56 @@ func init() {
 
 var db *sql.DB
 
-func getDockerImageInfo() (*DockerImage, error) {
-	// Use docker images with custom format to get the info we need including creation time
-	cmd := exec.Command("docker", "images", "--format", "{{.ID}},{{.Repository}}:{{.Tag}},{{.Size}},{{.CreatedAt}}", "local-container-registry")
+func getDockerImagesInfo() ([]DockerImage, error) {
+	// Get all Docker images, not just local-container-registry
+	cmd := exec.Command("docker", "images", "--format", "{{.ID}},{{.Repository}}:{{.Tag}},{{.Size}},{{.CreatedAt}}")
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get docker images: %v", err)
 	}
 
 	if len(output) == 0 {
-		return &DockerImage{
+		return []DockerImage{{
 			ID:        "Not Found",
 			RepoTags:  []string{"N/A"},
 			Size:      "N/A",
 			CreatedAt: "N/A",
-		}, nil
+		}}, nil
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(lines) == 0 {
-		return &DockerImage{
+		return []DockerImage{{
 			ID:        "Not Found",
 			RepoTags:  []string{"N/A"},
 			Size:      "N/A",
 			CreatedAt: "N/A",
-		}, nil
+		}}, nil
 	}
 
-	// Parse the first line (most recent image)
-	parts := strings.Split(lines[0], ",")
-	if len(parts) >= 4 {
-		return &DockerImage{
-			ID:        parts[0],
-			RepoTags:  []string{parts[1]},
-			Size:      parts[2],
-			CreatedAt: parts[3],
-		}, nil
+	var images []DockerImage
+	for _, line := range lines {
+		parts := strings.Split(line, ",")
+		if len(parts) >= 4 {
+			images = append(images, DockerImage{
+				ID:        parts[0],
+				RepoTags:  []string{parts[1]},
+				Size:      parts[2],
+				CreatedAt: parts[3],
+			})
+		}
 	}
 
-	return &DockerImage{
-		ID:        "Parse Error",
-		RepoTags:  []string{"N/A"},
-		Size:      "N/A",
-		CreatedAt: "N/A",
-	}, nil
+	if len(images) == 0 {
+		return []DockerImage{{
+			ID:        "Parse Error",
+			RepoTags:  []string{"N/A"},
+			Size:      "N/A",
+			CreatedAt: "N/A",
+		}}, nil
+	}
+
+	return images, nil
 }
 
 func main() {
@@ -224,36 +230,20 @@ func main() {
 	// TODO: [Tabs] - [Deployment] - Push
 	// TODO: [Tabs] - [Deployment] - Delete
 
-	// Get Docker image information
-	dockerInfo, err := getDockerImageInfo()
+	// Get Docker images information
+	dockerImages, err := getDockerImagesInfo()
 	if err != nil {
-		log.Printf("Warning: Could not get Docker image info: %v", err)
-		dockerInfo = &DockerImage{
+		log.Printf("Warning: Could not get Docker images info: %v", err)
+		dockerImages = []DockerImage{{
 			ID:        "Error",
 			RepoTags:  []string{"N/A"},
 			Size:      "N/A",
 			CreatedAt: "N/A",
-		}
-	}
-
-	// Format Docker data
-	imageID := dockerInfo.ID
-	if len(imageID) > 12 {
-		imageID = imageID[:12] // Show short ID like Docker CLI
-	}
-
-	imageTag := "N/A"
-	if len(dockerInfo.RepoTags) > 0 && dockerInfo.RepoTags[0] != "<none>:<none>" {
-		imageTag = dockerInfo.RepoTags[0]
-	}
-
-	imageSize := dockerInfo.Size
-	if dockerInfo.Size == "" || dockerInfo.Size == "N/A" {
-		imageSize = "N/A"
+		}}
 	}
 
 	// Start TUI with collected data from all commits
-	var tableData []TableData
+	var gitTableData []TableData
 	for _, commit := range commits {
 		commitMessage := commit.GetCommit().GetMessage()
 		
@@ -263,17 +253,39 @@ func main() {
 			pushedAt = commit.GetCommit().GetAuthor().GetDate().Format("2006-01-02 15:04:05")
 		}
 		
-		tableData = append(tableData, TableData{
+		gitTableData = append(gitTableData, TableData{
 			CommitSHA:     commit.GetSHA(),
 			PRDescription: commitMessage,
-			ImageID:       imageID,
-			ImageSize:     imageSize,
-			ImageTag:      imageTag,
 			PushedAt:      pushedAt,
-			CreatedAt:     dockerInfo.CreatedAt,
 		})
 	}
-	startTUI(tableData)
+
+	// Create Docker table data from actual Docker images
+	var dockerTableData []TableData
+	for _, dockerImg := range dockerImages {
+		imageID := dockerImg.ID
+		if len(imageID) > 12 {
+			imageID = imageID[:12] // Show short ID like Docker CLI
+		}
+
+		imageTag := "N/A"
+		if len(dockerImg.RepoTags) > 0 && dockerImg.RepoTags[0] != "<none>:<none>" {
+			imageTag = dockerImg.RepoTags[0]
+		}
+
+		imageSize := dockerImg.Size
+		if dockerImg.Size == "" || dockerImg.Size == "N/A" {
+			imageSize = "N/A"
+		}
+
+		dockerTableData = append(dockerTableData, TableData{
+			ImageID:   imageID,
+			ImageSize: imageSize,
+			ImageTag:  imageTag,
+			CreatedAt: dockerImg.CreatedAt,
+		})
+	}
+	startTUI(gitTableData, dockerTableData)
 }
 
 // I need to insert git commits into the mysql database
