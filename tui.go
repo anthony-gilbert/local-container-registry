@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -52,20 +53,26 @@ var (
 )
 
 type model struct {
-	table           table.Model
-	quitting        bool
-	activeTab       int
-	tabs            []string
-	gitData         []TableData
-	dockerData      []TableData
-	kubesData       []TableData
-	width           int
-	height          int
-	showModal       bool
-	selectedImage   string
-	showPodDef      bool
-	selectedPod     string
-	podDefTable     table.Model
+	table              table.Model
+	quitting           bool
+	activeTab          int
+	tabs               []string
+	gitData            []TableData
+	dockerData         []TableData
+	kubesData          []TableData
+	width              int
+	height             int
+	showModal          bool
+	selectedImage      string
+	showPodDef         bool
+	selectedPod        string
+	selectedPodNS      string
+	podDefTable        table.Model
+	deployments        []TableData
+	selectedDeployment int
+	deploymentPods     []TableData
+	selectedPod2       int
+	modalStep          int // 0 = deployment selection, 1 = pod selection, 2 = confirmation
 }
 
 func (m model) Init() tea.Cmd {
@@ -75,12 +82,46 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	switch msg := msg.(type) {
+	case deploymentsMsg:
+		m.deployments = msg.deployments
+		return m, nil
+	case deploymentPodsMsg:
+		m.deploymentPods = msg.pods
+		return m, nil
+	case podDetailsMsg:
+		if msg.err == nil {
+			m.initPodDefTable(msg.details)
+		} else {
+			m.initPodDefTable(nil)
+		}
+		return m, nil
 	case dockerDeleteMsg:
 		if msg.success {
 			// Refresh Docker data after successful deletion
 			return m, m.refreshDockerData()
 		}
 		// Handle deletion error (could show a message to user)
+		return m, nil
+	case dockerPullMsg:
+		if msg.success {
+			// Refresh Docker data after successful pull
+			return m, m.refreshDockerData()
+		}
+		// Handle pull error (could show a message to user)
+		return m, nil
+	case deploymentMsg:
+		// Handle deployment result and reset table selection
+		if msg.success {
+			// Reset table cursor to first row after successful deployment
+			m.table.SetCursor(0)
+			// Refresh deployments list to show the new deployment
+			return m, m.loadDeployments()
+		} else {
+			// Log the error for debugging
+			if msg.err != nil {
+				log.Printf("Deployment failed: %v", msg.err)
+			}
+		}
 		return m, nil
 	case dockerRefreshMsg:
 		// Update Docker data and refresh table
@@ -103,14 +144,36 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch keypress := msg.String(); keypress {
 		case "ctrl+c", "q":
+			// Handle quitting the application
 			m.quitting = true
 			return m, tea.Quit
 		case "1":
 			if m.showModal {
-				// Deploy to Kubernetes action
-				m.showModal = false
-				// TODO: Add actual deployment logic here
-				return m, nil
+				if m.modalStep == 0 {
+					if m.selectedDeployment == -1 {
+						// Create new deployment - move to creation step
+						m.modalStep = 1
+						return m, nil
+					} else {
+						// Update existing deployment - move to confirmation step
+						m.modalStep = 2
+						return m, nil
+					}
+				} else if m.modalStep == 1 {
+					// Create new deployment
+					m.showModal = false
+					m.modalStep = 0
+					return m, m.createNewDeployment(m.selectedImage)
+				} else {
+					// Deploy to selected deployment
+					m.showModal = false
+					m.modalStep = 0
+					if len(m.deployments) > 0 && m.selectedDeployment < len(m.deployments) {
+						selectedDeployment := m.deployments[m.selectedDeployment]
+						return m, m.deployImageToPod(m.selectedImage, selectedDeployment.PodName, selectedDeployment.Namespace)
+					}
+					return m, nil
+				}
 			} else {
 				// Switch to Git tab
 				m.activeTab = 0
@@ -119,9 +182,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "2":
 			if m.showModal {
-				// Cancel deployment
-				m.showModal = false
-				return m, nil
+				if m.modalStep == 1 {
+					// Go back to deployment selection from creation step
+					m.modalStep = 0
+					return m, nil
+				} else if m.modalStep == 2 {
+					// Go back to deployment selection from confirmation step
+					m.modalStep = 0
+					return m, nil
+				} else {
+					// Cancel deployment
+					m.showModal = false
+					m.modalStep = 0
+					return m, nil
+				}
 			} else {
 				// Switch to Docker tab
 				m.activeTab = 1
@@ -147,15 +221,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.activeTab == 1 && len(m.dockerData) > 0 {
 				selectedRow := m.table.Cursor()
 				if selectedRow < len(m.dockerData) {
-					m.selectedImage = m.dockerData[selectedRow].ImageID
+					imageData := m.dockerData[selectedRow]
+					m.selectedImage = imageData.ImageTag // Use full image name from registry
+					if m.selectedImage == "" {
+						m.selectedImage = imageData.ImageID
+					}
+					m.modalStep = 0
+					m.selectedDeployment = -1 // Start with "Create New Deployment" selected
+					m.selectedPod2 = 0
 					m.showModal = true
+					return m, m.loadDeployments()
 				}
 			} else if m.activeTab == 2 && len(m.kubesData) > 0 {
 				selectedRow := m.table.Cursor()
 				if selectedRow < len(m.kubesData) {
-					m.selectedPod = "local-container-registry-pod" // Use actual pod name
+					m.selectedPod = m.kubesData[selectedRow].PodName
+					m.selectedPodNS = m.kubesData[selectedRow].Namespace
 					m.showPodDef = true
-					m.initPodDefTable()
+					return m, m.loadPodDetails()
 				}
 			}
 			return m, nil
@@ -163,9 +246,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Close modal or pod definition view if open
 			if m.showModal {
 				m.showModal = false
+				m.modalStep = 0
 				return m, nil
 			} else if m.showPodDef {
 				m.showPodDef = false
+				return m, nil
+			}
+		case "up", "k":
+			if m.showModal && m.modalStep == 0 {
+				// Only allow navigation if there are deployments, otherwise stay on "Create New"
+				if len(m.deployments) > 0 && m.selectedDeployment > -1 {
+					m.selectedDeployment--
+				}
+				return m, nil
+			}
+		case "down", "j":
+			if m.showModal && m.modalStep == 0 {
+				// Allow moving from -1 (Create New) to 0 (first deployment) if deployments exist
+				if len(m.deployments) > 0 && m.selectedDeployment < len(m.deployments)-1 {
+					m.selectedDeployment++
+				}
 				return m, nil
 			}
 		case "ctrl+d":
@@ -175,6 +275,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if selectedRow < len(m.dockerData) {
 					imageID := m.dockerData[selectedRow].ImageID
 					return m, m.deleteDockerImage(imageID)
+				}
+			}
+		case "ctrl+p":
+			// Pull Docker image from registry when on Docker tab
+			if m.activeTab == 1 && len(m.dockerData) > 0 && !m.showModal {
+				selectedRow := m.table.Cursor()
+				if selectedRow < len(m.dockerData) {
+					imageTag := m.dockerData[selectedRow].ImageTag
+					if imageTag != "" && imageTag != "N/A" {
+						return m, m.pullDockerImage(imageTag)
+					}
 				}
 			}
 		}
@@ -235,37 +346,64 @@ func (m *model) updateTableForTab() {
 		}
 	case 1: // Docker tab
 		columns = []table.Column{
-			{Title: "Image ID", Width: 20},
-			{Title: "Repository", Width: 30},
-			{Title: "Tag", Width: 20},
-			{Title: "Size", Width: 15},
-			{Title: "Created", Width: 20},
+			{Title: "Image ID", Width: 15},
+			{Title: "Repository", Width: 35},
+			{Title: "Tag", Width: 15},
+			{Title: "Size", Width: 12},
+			{Title: "Created", Width: 25},
 		}
 		for _, item := range m.dockerData {
+			// Extract repository and tag from RepoTags
+			repository := "N/A"
+			tag := "N/A"
+			if len(item.ImageTag) > 0 && item.ImageTag != "N/A" {
+				// Handle localhost:5000/repo:tag format
+				imageTag := item.ImageTag
+				
+				// Remove localhost:5000/ prefix if present for cleaner display
+				if strings.HasPrefix(imageTag, "localhost:5000/") {
+					imageTag = strings.TrimPrefix(imageTag, "localhost:5000/")
+				}
+				
+				// Parse repository:tag format
+				lastColonIndex := strings.LastIndex(imageTag, ":")
+				if lastColonIndex > 0 {
+					repository = imageTag[:lastColonIndex]
+					tag = imageTag[lastColonIndex+1:]
+				} else {
+					repository = imageTag
+					tag = "latest"
+				}
+			}
+			
 			rows = append(rows, table.Row{
-				truncateString(item.ImageID, 20),
-				"local-container-registry",
-				"latest",
-				item.ImageSize,
-				item.CreatedAt,
+				truncateString(item.ImageID, 15),
+				truncateString(repository, 35),
+				truncateString(tag, 15),
+				truncateString(item.ImageSize, 12),
+				truncateString(item.CreatedAt, 25),
 			})
 		}
 	case 2: // Kubernetes tab
 		columns = []table.Column{
-			{Title: "Pod Name", Width: 30},
-			{Title: "Namespace", Width: 20},
-			{Title: "Status", Width: 15},
+			{Title: "Pod Name", Width: 35},
+			{Title: "Namespace", Width: 15},
+			{Title: "Status", Width: 12},
 			{Title: "Restarts", Width: 10},
 			{Title: "Age", Width: 15},
+			{Title: "Node", Width: 20},
 		}
-		// Placeholder data for Kubernetes
-		rows = append(rows, table.Row{
-			"local-container-registry-pod",
-			"default",
-			"Running",
-			"0",
-			"N/A",
-		})
+		// Real Kubernetes data
+		for _, item := range m.kubesData {
+			rows = append(rows, table.Row{
+				truncateString(item.PodName, 35),
+				item.Namespace,
+				item.Status,
+				item.Restarts,
+				item.Age,
+				truncateString(item.NodeName, 20),
+			})
+		}
 	default:
 		// Default to Git tab if something goes wrong
 		columns = []table.Column{
@@ -350,11 +488,11 @@ func (m model) View() string {
 	tabsRow := lipgloss.JoinHorizontal(lipgloss.Top, tabsRender...)
 	tabs := tabContainerStyle.Render(tabsRow)
 
-	instructions := "Press 1-3 to switch tabs, Tab to cycle, Enter to deploy/view, Ctrl+D to delete (Docker), 'q' to quit"
+	instructions := "Press 1-3 to switch tabs, Tab to cycle, Enter to deploy/view, Ctrl+D to delete, Ctrl+P to pull (Docker), 'q' to quit"
 
 	// Create border style with proper width that encompasses both tabs and table
 	containerStyle := baseStyle.Width(m.width - 2) // Account for border padding
-	
+
 	// Create separator between tabs and table
 	separatorWidth := m.width - 4
 	if separatorWidth < 0 {
@@ -362,39 +500,126 @@ func (m model) View() string {
 	}
 	separatorLine := strings.Repeat("─", separatorWidth)
 	separator := separatorStyle.Render(separatorLine)
-	
+
 	// Combine tabs, separator, and table, then apply border around all
 	tabsAndTable := lipgloss.JoinVertical(lipgloss.Left, tabs, separator, m.table.View())
 	borderedContainer := containerStyle.Render(tabsAndTable)
-	
+
 	mainView := fmt.Sprintf("%s\n\n%s\n\n%s", styledArt, borderedContainer, instructions)
-	
+
 	// Show modal if active
 	if m.showModal {
 		modal := m.renderModal()
 		return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, modal, lipgloss.WithWhitespaceChars("░"))
 	}
-	
+
 	// Show pod definition view if active
 	if m.showPodDef {
 		return m.renderPodDefView()
 	}
-	
+
 	return mainView
 }
 
 func (m model) renderModal() string {
-	modalContent := fmt.Sprintf(`Deploy Docker Image
+	if m.modalStep == 0 {
+		// Deployment selection step
+		var modalContent strings.Builder
+		modalContent.WriteString(fmt.Sprintf("Deploy Docker Image: %s\n\n", m.selectedImage))
+		modalContent.WriteString("Select Kubernetes Deployment:\n\n")
 
-Selected Image: %s
+		if len(m.deployments) == 0 {
+			modalContent.WriteString("Loading deployments...\n\n")
+			// Still show "Create New Deployment" option even when loading
+			prefix := "→ " // Always selected when no deployments
+			modalContent.WriteString(fmt.Sprintf("%s[Create New Deployment]\n\n", prefix))
+		} else {
+			// Add "Create New Deployment" option at the top
+			prefix := "  "
+			if m.selectedDeployment == -1 {
+				prefix = "→ "
+			}
+			modalContent.WriteString(fmt.Sprintf("%s[Create New Deployment]\n", prefix))
+
+			for i, deployment := range m.deployments {
+				prefix = "  "
+				if i == m.selectedDeployment {
+					prefix = "→ "
+				}
+				modalContent.WriteString(fmt.Sprintf("%s%s (%s) - %s\n",
+					prefix, deployment.PodName, deployment.Namespace, deployment.Status))
+			}
+			modalContent.WriteString("\n")
+		}
+
+		modalContent.WriteString("Use ↑/↓ to navigate, Enter/1 to select, 2 to cancel, ESC to close")
+
+		return modalStyle.Render(modalContent.String())
+	} else if m.modalStep == 1 {
+		// New deployment creation step - use same logic as createNewDeployment
+		deploymentName := strings.ToLower(m.selectedImage)
+		// Replace invalid characters with hyphens
+		deploymentName = strings.ReplaceAll(deploymentName, ":", "-")
+		deploymentName = strings.ReplaceAll(deploymentName, "/", "-")
+		deploymentName = strings.ReplaceAll(deploymentName, "_", "-")
+		deploymentName = strings.ReplaceAll(deploymentName, ".", "-")
+
+		// Remove any leading/trailing hyphens and ensure it's not empty
+		deploymentName = strings.Trim(deploymentName, "-")
+		if deploymentName == "" || deploymentName == "latest" {
+			deploymentName = "new-deployment"
+		}
+
+		// Ensure it starts with a letter (Kubernetes requirement)
+		if len(deploymentName) > 0 && (deploymentName[0] < 'a' || deploymentName[0] > 'z') {
+			deploymentName = "app-" + deploymentName
+		}
+
+		modalContent := fmt.Sprintf(`Create New Deployment
+
+Image: %s
+Deployment Name: %s
+Namespace: default
+Port: 80
+Replicas: 1
+
+This will create a new Kubernetes deployment with:
+- 1 replica pod running your image
+- Container port 80 exposed
+- ImagePullPolicy set to "Never" for local registry
+- App label: %s
 
 Options:
-[1] Deploy to Kubernetes
-[2] Cancel
+[1] Create Deployment
+[2] Go Back
 
-Press 1 to deploy, 2 to cancel, or ESC to close`, m.selectedImage)
+Press 1 to create, 2 to go back, or ESC to cancel`, m.selectedImage, deploymentName, deploymentName)
 
-	return modalStyle.Render(modalContent)
+		return modalStyle.Render(modalContent)
+	} else {
+		// Confirmation step for existing deployment
+		selectedDep := ""
+		if len(m.deployments) > 0 && m.selectedDeployment < len(m.deployments) {
+			selectedDep = m.deployments[m.selectedDeployment].PodName
+		}
+
+		modalContent := fmt.Sprintf(`Confirm Deployment
+
+Image: %s
+Deployment: %s
+
+This will update the deployment's container image and trigger a rolling update.
+All pods in this deployment will be updated with the new image.
+Make sure the image is available in your registry!
+
+Options:
+[1] Confirm Deploy
+[2] Go Back
+
+Press 1 to confirm, 2 to go back, or ESC to cancel`, m.selectedImage, selectedDep)
+
+		return modalStyle.Render(modalContent)
+	}
 }
 
 func (m model) renderPodDefView() string {
@@ -426,32 +651,93 @@ func (m model) renderPodDefView() string {
 	return fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s", styledArt, titleStyled, borderedTable, instructions)
 }
 
-func (m *model) initPodDefTable() {
+// Message types for async operations
+type deploymentsMsg struct {
+	deployments []TableData
+}
+
+type deploymentPodsMsg struct {
+	pods []TableData
+}
+
+type podDetailsMsg struct {
+	details map[string]string
+	err     error
+}
+
+func (m model) loadDeployments() tea.Cmd {
+	return func() tea.Msg {
+		deployments, _ := getKubernetesDeployments()
+		return deploymentsMsg{deployments: deployments}
+	}
+}
+
+func (m model) loadPodsForDeployment(deploymentName, namespace string) tea.Cmd {
+	return func() tea.Msg {
+		pods, _ := getPodsForDeployment(deploymentName, namespace)
+		return deploymentPodsMsg{pods: pods}
+	}
+}
+
+func (m model) loadPodDetails() tea.Cmd {
+	return func() tea.Msg {
+		details, err := getKubernetesPodDetails(m.selectedPod, m.selectedPodNS)
+		return podDetailsMsg{
+			details: details,
+			err:     err,
+		}
+	}
+}
+
+func (m *model) initPodDefTable(details map[string]string) {
 	columns := []table.Column{
-		{Title: "Key", Width: 30},
-		{Title: "Value", Width: 60},
+		{Title: "Key", Width: 35},
+		{Title: "Value", Width: 70},
 	}
 
-	rows := []table.Row{
-		{"Name", m.selectedPod},
-		{"Namespace", "default"},
-		{"Status", "Running"},
-		{"Image", "local-container-registry:latest"},
-		{"Restart Policy", "Always"},
-		{"CPU Request", "100m"},
-		{"Memory Request", "128Mi"},
-		{"CPU Limit", "500m"},
-		{"Memory Limit", "512Mi"},
-		{"Port", "8080"},
-		{"Created", "2024-01-15 10:30:00"},
-		{"Labels", "app=local-container-registry"},
+	var rows []table.Row
+
+	if details != nil {
+		// Add details in a logical order
+		orderedKeys := []string{
+			"Name", "Namespace", "Status", "Node", "Pod IP", "Host IP",
+			"Created", "Start Time", "Service Account", "Restart Policy", "DNS Policy",
+			"Container Name", "Container Image", "Image Pull Policy", "Container Ports",
+			"CPU Request", "Memory Request", "CPU Limit", "Memory Limit",
+			"Container Ready", "Restart Count", "Container ID",
+			"Ready Condition", "Scheduled Condition", "Initialized Condition",
+			"Labels", "Annotations",
+		}
+
+		for _, key := range orderedKeys {
+			if value, exists := details[key]; exists && value != "" {
+				rows = append(rows, table.Row{key, truncateString(value, 70)})
+			}
+		}
+
+		// Add any remaining details not in the ordered list
+		for key, value := range details {
+			found := false
+			for _, orderedKey := range orderedKeys {
+				if key == orderedKey {
+					found = true
+					break
+				}
+			}
+			if !found && value != "" {
+				rows = append(rows, table.Row{key, truncateString(value, 70)})
+			}
+		}
+	} else {
+		// Error loading details
+		rows = append(rows, table.Row{"Error", "Failed to load pod details"})
 	}
 
 	m.podDefTable = table.New(
 		table.WithColumns(columns),
 		table.WithRows(rows),
 		table.WithFocused(true),
-		table.WithHeight(15),
+		table.WithHeight(20),
 	)
 
 	s := table.DefaultStyles()
@@ -474,15 +760,79 @@ type dockerDeleteMsg struct {
 	err     error
 }
 
+type dockerPullMsg struct {
+	success  bool
+	imageTag string
+	err      error
+}
+
+type deploymentMsg struct {
+	success bool
+	err     error
+}
+
 func (m model) deleteDockerImage(imageID string) tea.Cmd {
 	return func() tea.Msg {
 		// Execute docker rmi command
 		cmd := exec.Command("docker", "rmi", "-f", imageID)
 		err := cmd.Run()
-		
+
 		return dockerDeleteMsg{
 			success: err == nil,
 			imageID: imageID,
+			err:     err,
+		}
+	}
+}
+
+func (m model) pullDockerImage(imageTag string) tea.Cmd {
+	return func() tea.Msg {
+		// Execute docker pull command
+		cmd := exec.Command("docker", "pull", imageTag)
+		err := cmd.Run()
+
+		return dockerPullMsg{
+			success:  err == nil,
+			imageTag: imageTag,
+			err:      err,
+		}
+	}
+}
+
+func (m model) deployImageToPod(imageName, deploymentName, namespace string) tea.Cmd {
+	return func() tea.Msg {
+		err := deployImageToPod(imageName, deploymentName, namespace)
+		return deploymentMsg{
+			success: err == nil,
+			err:     err,
+		}
+	}
+}
+
+func (m model) createNewDeployment(imageName string) tea.Cmd {
+	return func() tea.Msg {
+		// Generate a deployment name based on the image name
+		deploymentName := strings.ToLower(imageName)
+		// Replace invalid characters with hyphens
+		deploymentName = strings.ReplaceAll(deploymentName, ":", "-")
+		deploymentName = strings.ReplaceAll(deploymentName, "/", "-")
+		deploymentName = strings.ReplaceAll(deploymentName, "_", "-")
+		deploymentName = strings.ReplaceAll(deploymentName, ".", "-")
+
+		// Remove any leading/trailing hyphens and ensure it's not empty
+		deploymentName = strings.Trim(deploymentName, "-")
+		if deploymentName == "" || deploymentName == "latest" {
+			deploymentName = "new-deployment"
+		}
+
+		// Ensure it starts with a letter (Kubernetes requirement)
+		if len(deploymentName) > 0 && (deploymentName[0] < 'a' || deploymentName[0] > 'z') {
+			deploymentName = "app-" + deploymentName
+		}
+
+		err := createKubernetesDeployment(imageName, deploymentName, "default")
+		return deploymentMsg{
+			success: err == nil,
 			err:     err,
 		}
 	}
@@ -495,7 +845,7 @@ func (m model) refreshDockerData() tea.Cmd {
 		if err != nil {
 			return dockerDeleteMsg{success: false, err: err}
 		}
-		
+
 		// Convert to table data format
 		var dockerTableData []TableData
 		for _, dockerImg := range dockerImages {
@@ -521,7 +871,7 @@ func (m model) refreshDockerData() tea.Cmd {
 				CreatedAt: dockerImg.CreatedAt,
 			})
 		}
-		
+
 		return dockerRefreshMsg{data: dockerTableData}
 	}
 }
@@ -537,7 +887,7 @@ func truncateString(s string, maxLen int) string {
 	return s[:maxLen-3] + "..."
 }
 
-func startTUI(gitData []TableData, dockerData []TableData) {
+func startTUI(gitData []TableData, dockerData []TableData, kubernetesData []TableData) {
 	// Initialize tabs
 	tabs := []string{"Git", "Docker", "Kubernetes"}
 
@@ -584,7 +934,7 @@ func startTUI(gitData []TableData, dockerData []TableData) {
 		tabs:       tabs,
 		gitData:    gitData,
 		dockerData: dockerData,
-		kubesData:  gitData, // Reuse git data for kubernetes tab
+		kubesData:  kubernetesData,
 	}
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
