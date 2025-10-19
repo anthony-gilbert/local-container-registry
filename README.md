@@ -2,6 +2,8 @@
 
 A powerful Go application that provides a complete container development workflow with a beautiful terminal user interface (TUI). This application integrates GitHub repositories, local Docker registry, and Kubernetes deployments into a seamless development experience.
 
+![](https://github.com/anthony-gilbert/local-container-registry/blob/master/git-tab.png)
+
 ## 🏗️ Architecture
 
 The application runs entirely within Docker Compose, providing a self-contained development environment that manages container images and deployments to external Kubernetes clusters.
