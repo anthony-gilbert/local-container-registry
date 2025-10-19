@@ -1,17 +1,65 @@
 services:
+  app:
+    build: .
+    container_name: local-container-registry-app
+    environment:
+      MYSQL_USER: ${MYSQL_USER:-mysql}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-images}
+      MYSQL_HOST: ${MYSQL_HOST}
+      KUBECONFIG: /root/.kube/config
+      GITHUB_OWNER: ${GITHUB_OWNER}
+      GITHUB_REPO: ${GITHUB_REPO}
+      GITHUB_AUTH_TOKEN: ${GITHUB_AUTH_TOKEN}
+      KUBERNETES_CONTROL_PLANE: ${KUBERNETES_CONTROL_PLANE}
+      KUBERNETES_CONTROL_PLANE_PORT: ${KUBERNETES_CONTROL_PLANE_PORT}
+      KUBERNETES_NAMESPACE: ${KUBERNETES_NAMESPACE:-default}
+      KUBERNETES_REGISTRY_HOST: ${KUBERNETES_REGISTRY_HOST}
+    depends_on:
+      - db
+      - registry
+    volumes:
+      # Mount kubeconfig for Kubernetes access
+      - ~/.kube:/root/.kube:ro
+      # Mount Minikube certificates
+      - ~/.minikube:/root/.minikube:ro
+      # Mount Docker socket for Docker operations
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - local-registry-net
+
+  db:
+    image: mysql:8.0
+    container_name: local-container-registry-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-images}
+      MYSQL_USER: ${MYSQL_USER:-mysql}
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "3307:3306"
+    networks:
+      - local-registry-net
+
   registry:
     image: registry:latest
+    container_name: local-container-registry
     environment:
       REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
     volumes:
-      # Mount the password file
-      - ./registry.password:/auth/registry.password
       # Mount the data directory
       - ./data:/data
     ports:
       - "5000:5000"
+    networks:
+      - local-registry-net
+
   nginx:
     image: nginx:latest
+    container_name: local-container-registry-nginx
     depends_on:
       - registry
     volumes:
@@ -20,4 +68,13 @@ services:
       # mount the certificates obtained from Let's Encrypt
       - ./ssl-certs:/etc/nginx/certs
     ports:
-      - "443:443"
+      - "8443:443"
+    networks:
+      - local-registry-net
+
+networks:
+  local-registry-net:
+    driver: bridge
+
+volumes:
+  mysql_data:

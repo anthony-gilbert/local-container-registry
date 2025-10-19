@@ -243,7 +243,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		case "esc":
-			// Close modal or pod definition view if open
+			// Close modal or pod definition view if open, otherwise quit
 			if m.showModal {
 				m.showModal = false
 				m.modalStep = 0
@@ -251,6 +251,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else if m.showPodDef {
 				m.showPodDef = false
 				return m, nil
+			} else {
+				// No modal open, quit the application
+				m.quitting = true
+				return m, tea.Quit
 			}
 		case "up", "k":
 			if m.showModal && m.modalStep == 0 {
@@ -346,8 +350,8 @@ func (m *model) updateTableForTab() {
 		}
 	case 1: // Docker tab
 		columns = []table.Column{
-			{Title: "Image ID", Width: 15},
-			{Title: "Repository", Width: 35},
+			{Title: "Image ID", Width: 20},
+			{Title: "Repository", Width: 30},
 			{Title: "Tag", Width: 15},
 			{Title: "Size", Width: 12},
 			{Title: "Created", Width: 25},
@@ -359,12 +363,12 @@ func (m *model) updateTableForTab() {
 			if len(item.ImageTag) > 0 && item.ImageTag != "N/A" {
 				// Handle localhost:5000/repo:tag format
 				imageTag := item.ImageTag
-				
+
 				// Remove localhost:5000/ prefix if present for cleaner display
 				if strings.HasPrefix(imageTag, "localhost:5000/") {
 					imageTag = strings.TrimPrefix(imageTag, "localhost:5000/")
 				}
-				
+
 				// Parse repository:tag format
 				lastColonIndex := strings.LastIndex(imageTag, ":")
 				if lastColonIndex > 0 {
@@ -375,10 +379,10 @@ func (m *model) updateTableForTab() {
 					tag = "latest"
 				}
 			}
-			
+
 			rows = append(rows, table.Row{
-				truncateString(item.ImageID, 15),
-				truncateString(repository, 35),
+				truncateString(item.ImageID, 20),
+				truncateString(repository, 30),
 				truncateString(tag, 15),
 				truncateString(item.ImageSize, 12),
 				truncateString(item.CreatedAt, 25),
@@ -488,7 +492,7 @@ func (m model) View() string {
 	tabsRow := lipgloss.JoinHorizontal(lipgloss.Top, tabsRender...)
 	tabs := tabContainerStyle.Render(tabsRow)
 
-	instructions := "Press 1-3 to switch tabs, Tab to cycle, Enter to deploy/view, Ctrl+D to delete, Ctrl+P to pull (Docker), 'q' to quit"
+	instructions := "Press 1-3 to switch tabs, Tab to cycle, Enter to deploy/view, Ctrl+D to delete, Ctrl+P to pull (Docker), 'q' or ESC to quit"
 
 	// Create border style with proper width that encompasses both tabs and table
 	containerStyle := baseStyle.Width(m.width - 2) // Account for border padding
@@ -850,8 +854,8 @@ func (m model) refreshDockerData() tea.Cmd {
 		var dockerTableData []TableData
 		for _, dockerImg := range dockerImages {
 			imageID := dockerImg.ID
-			if len(imageID) > 12 {
-				imageID = imageID[:12]
+			if len(imageID) > 20 {
+				imageID = imageID[:20]
 			}
 
 			imageTag := "N/A"

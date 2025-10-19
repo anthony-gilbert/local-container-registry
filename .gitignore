@@ -1,1 +1,103 @@
+# Environment variables
 .env
+.env.local
+.env.production
+.env.staging
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+local-container-registry
+
+# Go coverage files
+*.cover
+*.coverprofile
+coverage.txt
+
+# Dependency directories
+vendor/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+app.log
+logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Docker volumes and data
+data/
+ssl-certs/
+auth/
+certs/
+
+# Registry storage
+registry.password
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Build artifacts
+build/
+dist/
+bin/
+
+# Test coverage
+coverage.html
+coverage.xml
+
+# Kubernetes secrets and configs
+kubeconfig
+*.kubeconfig
+
+# Backup files
+*.backup
+*.bak
+*~
+
+# Internal documentation
+AGENT.md
+AGENT_GUIDE.md
+CRUSH.md
+*.md.bak
+
+# Crush directory (internal)
+.crush/
+
+# Local development files
+.dockerignore.local
+Makefile.local
+
+# Binary files and executables
+kubectl
+local-container-registry
+
+# Strange or corrupted files
+*G@8*
+*@8*

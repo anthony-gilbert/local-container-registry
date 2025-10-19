@@ -1,20 +1,17 @@
-FROM golang:1.24
+FROM golang:1.23.2
 
-# WORKDIR /usr/src/app
 WORKDIR /app
 
-# pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
-COPY . .
-RUN go mod download
+# Copy pre-built binary (built locally to avoid Docker build issues)
+COPY local-container-registry .
 
-# COPY . .
+# Install kubectl for Kubernetes operations
+RUN curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && \
+    chmod +x kubectl && \
+    mv kubectl /usr/local/bin/
 
-# Download and Install the dependencies
-RUN go get -d -v ./...
-
-# RUN go build -v -o /usr/local/bin/app ./...
-RUN go build -o local-container-registry .
-
-EXPOSE 8081
+# For now, run as root to access kubeconfig and Docker socket
+# TODO: Implement proper security with user permissions
+USER root
 
 CMD ["./local-container-registry"]

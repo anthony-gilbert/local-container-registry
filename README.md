@@ -2,6 +2,42 @@
 
 A powerful Go application that provides a complete container development workflow with a beautiful terminal user interface (TUI). This application integrates GitHub repositories, local Docker registry, and Kubernetes deployments into a seamless development experience.
 
+## 🏗️ Architecture
+
+The application runs entirely within Docker Compose, providing a self-contained development environment that manages container images and deployments to external Kubernetes clusters.
+
+```mermaid
+graph TB
+    subgraph "Docker Compose Environment"
+        A[Local Container Registry<br/>Go Application]
+        B[TUI Interface<br/>Bubble Tea]
+        C[MySQL Database<br/>Container]
+        D[Docker Registry<br/>Container]
+        E[Nginx Proxy<br/>Container<br/>SSL-enabled]
+    end
+
+    subgraph "External Integrations"
+        F[GitHub API<br/>Repository Data]
+        G[Kubernetes Cluster<br/>Target Deployment<br/>Minikube/Custom]
+    end
+
+    A --> B
+    A --> C
+    A --> D
+    A --> E
+    A --> F
+    A --> G
+
+    style A fill:#e1f5fe
+    style B fill:#e1f5fe
+    style C fill:#fff3e0
+    style D fill:#fff3e0
+    style E fill:#fff3e0
+
+    style F fill:#f3e5f5
+    style G fill:#f3e5f5
+```
+
 ## 🚀 Features
 
 ### Multi-Tab TUI Interface
@@ -40,7 +76,7 @@ A powerful Go application that provides a complete container development workflo
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/anthonygilbertt/local-container-registry.git
+git clone https://github.com/anthony-gilbert/local-container-registry.git
 cd local-container-registry
 ```
 
@@ -55,50 +91,37 @@ go mod download
 Create a `.env` file in the project root:
 
 ```bash
-# GitHub Configuration
-gitHubAuth=your_github_token_here
-GITHUB_OWNER=your_github_username
-GITHUB_REPO=your_repository_name
-
-# MySQL Database
-MYSQL_USER=your_mysql_user
-MYSQL_ROOT_PASSWORD=your_mysql_password
-
-# Kubernetes (Optional - for custom clusters)
-KUBERNETES_CONTROL_PLANE=192.168.67.2
-KUBERNETES_CONTROL_PLANE_PORT=8443
-KUBERNETES_NAMESPACE=default
-KUBERNETES_REGISTRY_HOST=localhost:5000
+cp .env.example .env
 ```
 
-### 4. Setup MySQL Database
+Then edit `.env` with your values. Required environment variables:
+- `MYSQL_ROOT_PASSWORD` - Secure password for MySQL database
 
-Create the MySQL database and table:
+Optional environment variables:
+- `GITHUB_OWNER`, `GITHUB_REPO`, `GITHUB_AUTH_TOKEN` - For GitHub integration
+- `KUBERNETES_CONTROL_PLANE`, etc. - For custom Kubernetes clusters
 
-```sql
-CREATE DATABASE images;
-USE images;
-CREATE TABLE images (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    commit_sha VARCHAR(255),
-    PR_Description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
+### 4. Start the Complete Environment
 
-### 5. Start Local Registry Services
+The application runs entirely within Docker Compose. Start all services:
 
 ```bash
-# Start the Docker registry and nginx proxy
+# Start all services (app, database, registry, nginx)
 docker compose up -d
 
-# Verify services are running
-docker ps
+# Check that all containers are running
+docker compose ps
 ```
+
+This will start:
+- **App**: The Go TUI application
+- **Database**: MySQL database for storing commit data
+- **Registry**: Docker registry at `localhost:5000`
+- **Nginx**: SSL proxy at `https://localhost:443`
 
 This starts:
 - **Registry API**: `http://localhost:5000` (for pushing/pulling images)
-- **Nginx Proxy**: `https://localhost:443` (SSL-enabled access)
+- **Nginx Proxy**: `https://localhost:8443` (SSL-enabled access)
 
 ### 6. Setup Kubernetes (Minikube)
 
@@ -117,8 +140,21 @@ minikube status
 
 ### Starting the Application
 
+The application runs automatically when you start Docker Compose. To interact with it:
+
 ```bash
-# Run the TUI application
+# The TUI will be running in the background
+# Attach to the running container to see the interface
+docker compose logs -f app
+
+# Or execute commands in the running container
+docker compose exec app ./local-container-registry
+```
+
+For local development outside of Docker Compose:
+
+```bash
+# Run locally (requires external MySQL and registry)
 go run .
 
 # Or build and run
@@ -194,6 +230,15 @@ The application automatically:
 - ✅ Sets `ImagePullPolicy: Never` for local images
 - ✅ Creates proper Kubernetes manifests
 - ✅ Handles registry hostname resolution
+- ✅ : [Tabs] - [Docker] List The Docker Image IDs
+- ✅ : [Tabs] - [Docker] List The Docker Image Size
+- ✅ : [Tabs] - [Docker] List The Docker Image Tags(If available)
+- [  &nbsp;&nbsp;&nbsp;]: [Tabs] - [Docker] Delete The Docker Image
+- [  &nbsp;&nbsp;&nbsp;]: [Tabs] - [Docker] Delete The Docker Container
+- [  &nbsp;&nbsp;&nbsp;]: [Tabs] - [Deployment] - Pull
+- [  &nbsp;&nbsp;&nbsp;]: [Tabs] - [Deployment] - List
+- [  &nbsp;&nbsp;&nbsp;]: [Tabs] - [Deployment] - Push
+- [  &nbsp;&nbsp;&nbsp;]: [Tabs] - [Deployment] - Delete
 
 ### Manual Kubernetes Deployment
 
@@ -233,29 +278,33 @@ minikube image load localhost:5000/my-app:latest
 ## 🛠️ Available Commands
 
 ```bash
-# Build application
+# Start complete environment
+docker compose up -d
+
+# Stop all services
+docker compose down
+
+# View logs
+docker compose logs -f
+
+# Restart services
+docker compose restart
+
+# Local development commands
 make build
 go build -o local-container-registry .
-
-# Run locally  
 make run-local
 go run .
 
-# Build Docker image of the application itself
+# Build Docker image of the application
 make docker-build
 docker build -t local-container-registry .
 
-# Run application in Docker
+# Run application in Docker (standalone)
 make docker-run
 
 # Clean up Docker images
 make clean
-
-# Start registry services
-docker compose up -d
-
-# Stop registry services  
-docker compose down
 ```
 
 ## 📁 Project Structure
@@ -264,7 +313,9 @@ docker compose down
 local-container-registry/
 ├── main.go              # Core application logic & GitHub/K8s integration
 ├── tui.go               # Terminal UI implementation (Bubble Tea)
-├── compose.yaml         # Docker registry services
+├── compose.yaml         # Complete Docker Compose environment
+├── init-db.sql          # MySQL database initialization
+├── Dockerfile           # Application container build
 ├── Makefile            # Build and run commands
 ├── go.mod              # Go module dependencies
 ├── .env                # Environment variables (create this)
@@ -272,6 +323,7 @@ local-container-registry/
 ├── ssl-certs/          # SSL certificates for nginx
 ├── auth/               # Registry authentication (if enabled)
 ├── AGENT.md            # Agent configuration guide
+├── README.md           # This documentation
 └── REGISTRY_USAGE.md   # Detailed registry usage guide
 ```
 
@@ -282,7 +334,7 @@ local-container-registry/
 The registry runs without authentication by default for development. Located at:
 - **API**: `http://localhost:5000`
 - **Storage**: `./data` directory
-- **Nginx**: `https://localhost:443` (with SSL)
+- **Nginx**: `https://localhost:8443` (with SSL)
 
 ### GitHub Integration
 
@@ -329,14 +381,23 @@ minikube image load localhost:5000/my-app:latest
 ### Application Issues
 
 ```bash
-# Check MySQL connection
-mysql -h 127.0.0.1 -u $MYSQL_USER -p$MYSQL_ROOT_PASSWORD images
+# Check container status
+docker compose ps
+
+# View application logs
+docker compose logs app
+
+# Check MySQL connection (from host)
+mysql -h 127.0.0.1 -P 3307 -u mysql -p$MYSQL_ROOT_PASSWORD images
+
+# Or connect to MySQL container directly
+docker compose exec db mysql -u mysql -p$MYSQL_ROOT_PASSWORD images
 
 # Verify environment variables
 cat .env
 
-# Check application logs
-go run . 2>&1 | tee app.log
+# Restart all services
+docker compose restart
 ```
 
 ## 🔄 Development Workflow

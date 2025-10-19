@@ -1,0 +1,9 @@
+CREATE DATABASE IF NOT EXISTS images;
+USE images;
+
+CREATE TABLE IF NOT EXISTS images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    commit_sha VARCHAR(255),
+    PR_Description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

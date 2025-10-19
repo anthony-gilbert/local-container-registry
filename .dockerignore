@@ -1,0 +1,11 @@
+.env
+.git
+.gitignore
+README.md
+*.log
+docker-compose.yml
+compose.yaml
+Dockerfile
+Makefile
+*.md
+kubernetes-*
